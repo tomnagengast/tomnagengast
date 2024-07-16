@@ -1,13 +1,13 @@
 # 📓
 
-Github repo: https://github.com/tomnagengast/tomnagengast/
-Netlify site: https://app.netlify.com/sites/tomnagengast/
+-   Github repo: https://github.com/tomnagengast/tomnagengast/
+-   Netlify site: https://app.netlify.com/sites/tomnagengast/
 
 ## Dev
 
 Using the tailwind v4 alpha: https://tailwindcss.com/blog/tailwindcss-v4-alpha
 
-```
+```sh
 # npm install tailwindcss@next @tailwindcss/cli@next
 npx @tailwindcss/cli@next -wm -i main.css  -o dist/main.css
 ```
@@ -16,7 +16,7 @@ npx @tailwindcss/cli@next -wm -i main.css  -o dist/main.css
 
 Netlify functions with htmx
 
-```
+```sh
 # npm install netlify-cli -g
 netlify functions:create
 
