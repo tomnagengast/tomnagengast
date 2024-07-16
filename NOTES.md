@@ -16,6 +16,9 @@ npx @tailwindcss/cli@next -wm -i main.css  -o dist/main.css
 
 Netlify functions with htmx
 
+-   https://docs.netlify.com/functions/overview/
+-   https://htmx.org/
+
 ```sh
 # npm install netlify-cli -g
 netlify functions:create
