@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+            rel="icon"
+            type="image/png"
+            sizes="32x32"
+            href="/img/yeehaw.png"
+        />
+        <link rel="stylesheet" href="/dist/main.css" />
+        <title>Tom Nagengast</title>
+    </head>
+
+    <body>
+        <div
+            class="container mx-auto max-w-4xl px-4 lg:px-0 text-gray-900"
+            x-data="{
+                codingYears: (new Date).getFullYear() - (new Date(&#39;2012-09-01&#39;)).getFullYear(),
+                dataYears: (new Date).getFullYear() - (new Date(&#39;2014-10-01&#39;)).getFullYear()
+            }"
+        >
+            <div class="max-w-xl mx-auto">
+                <div
+                    class="flex justify-between flex-col sm:flex-row items-center py-8"
+                >
+                    <a
+                        href="https://tomnagengast.com/"
+                        class="flex items-center space-x-4"
+                    >
+                        <div class="font-bold text-4xl">Tom Nagengast</div>
+                    </a>
+                    <div class="group-first:space-x-4 pt-2 nav-items">
+                        <a
+                            href="https://tomnagengast.com/"
+                            class="hover:bg-blue-200 hover:text-blue-700 px-2 py-1 rounded text-base text-gray-500 link-active"
+                        >
+                            README
+                        </a>
+                    </div>
+                </div>
+                <!-- <div class="relative">
+                    <img class="absolute top-0 w-48" src="/img/whoa.png" alt="" />
+                </div> -->
+                <div class="text-7xl font-bold my-4 title">README</div>
+                <div class="text-xl mb-4">
+                    I'm
+                    <a href="https://twitter.com/tomnagengast">@tomnagengast</a
+                    >, a data guy, cookery connioseur, and cellar rat.
+                </div>
+                <div class="text-xl mb-4">
+                    I've been hooked on web development for
+                    <span x-text="codingYears">12</span> years now and immersed
+                    in the data world for almost
+                    <span x-text="dataYears">10</span> years.
+                </div>
+                <div class="text-xl mb-4">
+                    I wasn't always a nerd though - I grew up in the
+                    <a href="https://cinquaincellars.com/">wine industry</a>,
+                    got
+                    <a
+                        href="https://uclabruins.com/sports/track-and-field/roster/thomas-nagengast/1943"
+                        >pretty good at sports-ing</a
+                    >, and even started my own
+                    <a href="https://bajkawine.com/">wine label</a> before I
+                    turned my attention to the keys.
+                </div>
+                <div class="text-xl mb-4">
+                    My path to tech is kind of a long story, but you can
+                    <a href="https://www.getdbt.com/data-careers/tom-nagengast">
+                        dive in</a
+                    >
+                    if you're interested.
+                </div>
+                <div class="text-xl mb-4">
+                    Right now, I'm helping drive data at
+                    <a href="https://www.replit/">Replit</a> and, completely
+                    unrelated, trying to make
+                    <a href="https://mapleprep.com/">something fun 👨‍🍳</a>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,20 @@
+@import url(https://fonts.bunny.net/css?family=libre-franklin:900);
+@import "tailwindcss";
+
+:root {
+    --min-height: 100vh;
+}
+
+@layer utilities {
+    a {
+        @apply font-bold text-blue-700 text-xl;
+    }
+
+    .title {
+        font-family: "Libre Franklin", serif;
+    }
+
+    .nav-items .link-active {
+        @apply bg-blue-200 text-blue-700;
+    }
+}
