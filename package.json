@@ -1,6 +1,11 @@
 {
-    "dependencies": {
-        "@tailwindcss/cli": "^4.0.0-alpha.17",
-        "tailwindcss": "^4.0.0-alpha.17"
-    }
+  "scripts": {
+    "dev": "tailwindcss -i main.css -o dist/main.css --watch",
+    "build": "tailwindcss -i main.css -o dist/main.css",
+    "serve": "npx serve ."
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.12",
+    "tailwindcss": "^4.1.12"
+  }
 }
