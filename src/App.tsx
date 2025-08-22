@@ -18,15 +18,15 @@ function App() {
     }
   };
   return (
-    <div className="container mx-auto max-w-xl px-4 lg:px-0 text-gray-900">
+    <div className="container mx-auto max-w-xl px-4 lg:px-0">
       <div className="mt-24">
         <a href="https://tomnagengast.com/">
-          <div className="flex justify-between items-center text-xl">
+          <div className="flex justify-between items-center text-xl underline text-slate-900">
             Tom Nagengast
           </div>
         </a>
 
-        <div className="text-6xl font-bold mt-4 title">README</div>
+        {/* <div className="text-6xl font-bold mt-4 title">README</div> */}
 
         <div className="text-xl my-8 space-y-4">
           <Markdown>
@@ -138,7 +138,7 @@ function App() {
             }`}
           >
             <svg viewBox="0 0 170 170">
-              <mask id="blob1" class="mask-type-alpha fill-gray-700/70">
+              <mask id="blob1" className="mask-type-alpha fill-slate-700/70">
                 <path
                   fill="#E8DAFF"
                   d="M39.8,-53.1C50.6,-38.4,57.6,-24.9,62.1,-9.5C66.5,5.9,68.3,23.2,61.7,36.7C55.2,50.2,40.2,59.8,23.2,67.8C6.2,75.8,-13,82.1,-29.1,77.4C-45.3,72.6,-58.3,56.9,-67.4,39.7C-76.5,22.4,-81.5,3.6,-77.3,-12.6C-73.2,-28.7,-59.9,-42.1,-45.5,-56.1C-31.1,-70.2,-15.5,-84.8,-0.5,-84.2C14.5,-83.6,29,-67.7,39.8,-53.1Z"
