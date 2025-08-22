@@ -1,9 +1,29 @@
 import Markdown from "react-markdown";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function App() {
   const [showBlob, setShowBlob] = useState(false);
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Preload all GIFs
+    const gifs = [
+      "/gifs/typing-cat.gif",
+      "/gifs/costanza-busy.gif", 
+      "/gifs/old-dance.gif",
+      "/gifs/static.gif"
+    ];
+    
+    // Preload SVGs
+    const svgs = [
+      "https://unpkg.com/simple-icons@v15/icons/github.svg"
+    ];
+    
+    [...gifs, ...svgs].forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   const getBlobImage = () => {
     switch (hoveredIcon) {
