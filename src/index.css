@@ -1,0 +1,23 @@
+@import url(https://fonts.bunny.net/css?family=libre-franklin:900);
+@import "tailwindcss";
+
+@theme {
+  --font-title: "Libre Franklin", serif;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+a {
+  @apply font-bold text-blue-700 text-xl;
+}
+
+.title {
+  font-family: var(--font-title);
+}
+
+.nav-items .link-active {
+  @apply bg-blue-200 text-blue-700;
+}
