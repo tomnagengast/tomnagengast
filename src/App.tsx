@@ -98,13 +98,28 @@ function App() {
             </li>
           </ul>
 
-          <div className="flex justify-center mt-6 social-gifs relative h-10">
-            <div className="github-gif h-30 w-30 bg-cover bg-[url(https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTJrcjNmYW0zdXdkY29rNmFmOHVpOWtqYndsa3dtMm5xZTdrdTVvbSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/o0vwzuFwCGAFO/giphy.gif)]"></div>
-            {/* <div className="linkedin-gif h-30 w-30 bg-cover bg-[url(https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjVuNXNhbjlwb2M0Y2RhamNwbW1odjU5cTc0MjBybXlpMmljMWN0bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/opDRL3H2A9iLNuvbOv/giphy.gif)]"></div> */}
-            <div className="linkedin-gif h-30 w-30 bg-cover bg-[url(https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOXhqaGpxaXM3cm00OXlwanlsd3p3dDBmM2NnbnVxNnA3NHcxNTR2NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3d4JvDzQsuca1nNwiQ/giphy.gif)]"></div>
-            <div className="email-gif h-30 w-30 bg-no-repeat bg-cover bg-[center_10%] bg-[url(https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXBxbXExbTdmYzJjZGR2aTQ0eWxicnZmZnV5MnU3Z3J6eTR0dzVtYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/bEiCMHLRap9TUYaqow/giphy.gif)]"></div>
-            {/* <div className="email-gif h-30 w-30 bg-no-repeat bg-cover bg-[center_10%] bg-[url(https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExeHpzbmkxN3htd280dTZuYXg3NjFvdndmbGd2a2xiNzMyOGlrMmpibyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/oUS6u2rbjg4JD4Z9Lp/giphy.gif)]"></div> */}
-            {/* <div className="email-gif h-30 w-30 bg-no-repeat bg-cover bg-[center_10%] bg-[url(https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjhrZ2tucWZnNjZtZ3ZkemM4NHdtd2xjaWFrbnBmM290MjI3ejR0aCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gWNr07kKBUM3S/giphy.gif)]"></div> */}
+          <div className="h-40 w-40 flex justify-center mx-auto mt-6 social-gifs relative">
+            <svg viewBox="0 0 170 170">
+              <mask id="blob1" class="mask-type-alpha fill-gray-700/70">
+                <path
+                  fill="#E8DAFF"
+                  d="M39.8,-53.1C50.6,-38.4,57.6,-24.9,62.1,-9.5C66.5,5.9,68.3,23.2,61.7,36.7C55.2,50.2,40.2,59.8,23.2,67.8C6.2,75.8,-13,82.1,-29.1,77.4C-45.3,72.6,-58.3,56.9,-67.4,39.7C-76.5,22.4,-81.5,3.6,-77.3,-12.6C-73.2,-28.7,-59.9,-42.1,-45.5,-56.1C-31.1,-70.2,-15.5,-84.8,-0.5,-84.2C14.5,-83.6,29,-67.7,39.8,-53.1Z"
+                  transform="translate(90 88)"
+                />
+              </mask>
+              <image
+                // href="/gifs/typing-cat.gif" // github
+                // href="/gifs/costanza-busy.gif" // linkedin
+                // href="/gifs/old-dance.gif" // email
+                href="/gifs/static.gif" // hover
+                height="100%"
+                width="100%"
+                mask="url(#blob1)"
+              />
+            </svg>
+            {/* <div className="github-gif h-30 w-30 rounded bg-cover bg-[url(/gifs/typing-cat.gif)]"></div>
+            <div className="linkedin-gif h-30 w-30 rounded bg-cover bg-[url(/gifs/costanza-busy.gif)]"></div>
+            <div className="email-gif h-30 w-30 rounded bg-cover bg-[center_10%] bg-[url(/gifs/old-dance.gif)]"></div> */}
           </div>
         </div>
       </div>
