@@ -1,6 +1,22 @@
 import Markdown from "react-markdown";
+import { useState } from "react";
 
 function App() {
+  const [showBlob, setShowBlob] = useState(false);
+  const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
+
+  const getBlobImage = () => {
+    switch (hoveredIcon) {
+      case "github":
+        return "/gifs/typing-cat.gif";
+      case "linkedin":
+        return "/gifs/costanza-busy.gif";
+      case "email":
+        return "/gifs/old-dance.gif";
+      default:
+        return "/gifs/static.gif";
+    }
+  };
   return (
     <div className="container mx-auto max-w-xl px-4 lg:px-0 text-gray-900">
       <div className="mt-24">
@@ -43,7 +59,13 @@ function App() {
 
         <div className="social-container">
           <ul className="flex items-center justify-center mt-8 space-x-4 text-secondary-600">
-            <li className="group github-link">
+            <li
+              onMouseEnter={() => {
+                setShowBlob(true);
+                setHoveredIcon("github");
+              }}
+              onMouseLeave={() => setHoveredIcon(null)}
+            >
               <a
                 href="https://github.com/tomnagengast"
                 className="hover:text-brand transition-colors"
@@ -56,7 +78,13 @@ function App() {
                 />
               </a>
             </li>
-            <li className="group linkedin-link">
+            <li
+              onMouseEnter={() => {
+                setShowBlob(true);
+                setHoveredIcon("linkedin");
+              }}
+              onMouseLeave={() => setHoveredIcon(null)}
+            >
               <a
                 href="https://www.linkedin.com/in/tomnagengast"
                 className="hover:text-brand transition-colors"
@@ -73,7 +101,13 @@ function App() {
                 </svg>
               </a>
             </li>
-            <li className="group email-link">
+            <li
+              onMouseEnter={() => {
+                setShowBlob(true);
+                setHoveredIcon("email");
+              }}
+              onMouseLeave={() => setHoveredIcon(null)}
+            >
               <a
                 href="mailto:tnagengast@gmail.com"
                 className="hover:text-brand transition-colors"
@@ -98,7 +132,11 @@ function App() {
             </li>
           </ul>
 
-          <div className="h-40 w-40 flex justify-center mx-auto mt-6 social-gifs relative">
+          <div
+            className={`h-40 w-40 flex justify-center mx-auto mt-6 social-gifs relative transition-opacity duration-100 ${
+              showBlob ? "opacity-100" : "opacity-0"
+            }`}
+          >
             <svg viewBox="0 0 170 170">
               <mask id="blob1" class="mask-type-alpha fill-gray-700/70">
                 <path
@@ -108,18 +146,12 @@ function App() {
                 />
               </mask>
               <image
-                // href="/gifs/typing-cat.gif" // github
-                // href="/gifs/costanza-busy.gif" // linkedin
-                // href="/gifs/old-dance.gif" // email
-                href="/gifs/static.gif" // hover
+                href={getBlobImage()}
                 height="100%"
                 width="100%"
                 mask="url(#blob1)"
               />
             </svg>
-            {/* <div className="github-gif h-30 w-30 rounded bg-cover bg-[url(/gifs/typing-cat.gif)]"></div>
-            <div className="linkedin-gif h-30 w-30 rounded bg-cover bg-[url(/gifs/costanza-busy.gif)]"></div>
-            <div className="email-gif h-30 w-30 rounded bg-cover bg-[center_10%] bg-[url(/gifs/old-dance.gif)]"></div> */}
           </div>
         </div>
       </div>
