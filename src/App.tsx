@@ -2,25 +2,31 @@ import Markdown from "react-markdown";
 
 function App() {
   return (
-    <div className="border container mx-auto max-w-lg px-4 lg:px-0 text-gray-900">
-      <div className="max-w-xl mx-auto mt-24">
+    <div className="container mx-auto max-w-xl px-4 lg:px-0 text-gray-900">
+      <div className="mt-24">
         <a href="https://tomnagengast.com/">
           <div className="flex justify-between items-center text-xl">
             Tom Nagengast
           </div>
         </a>
 
-        <div className="text-7xl font-bold mt-4 title">README</div>
+        <div className="text-6xl font-bold mt-4 title">README</div>
 
         <div className="text-xl my-8 space-y-4">
           <Markdown>
-            {`Currently [slingin' bits](https://cable.tech/) and [stompin' grapes](https://bajkawine.com/)
-
-Previously piping data with the fine folks at [Replit](https://blog.replit.com/how-replit-makes-sense-of-code-at-scale-ai-data/), Replicated, [Netlify](https://www.netlify.com/blog/2021/04/08/how-the-netlify-data-team-uses-census-for-operational-analytics/) and Mindbody.`}
+            {`Currently [slingin' bits](https://cable.tech/) and [stompin' grapes](https://bajkawine.com/).`}
+          </Markdown>
+          <Markdown>
+            {`Previously piping data with the fine folks at
+            [Replit](https://blog.replit.com/how-replit-makes-sense-of-code-at-scale-ai-data/),
+            Replicated,
+            [Netlify](https://www.netlify.com/blog/2021/04/08/how-the-netlify-data-team-uses-census-for-operational-analytics/)
+            and Mindbody.
+            `}
           </Markdown>
         </div>
 
-        <div className="flex justify-center mt-10 mb-6">
+        <div className="flex justify-center mt-10">
           <svg
             width="237"
             height="12"
@@ -35,9 +41,9 @@ Previously piping data with the fine folks at [Replit](https://blog.replit.com/h
           </svg>
         </div>
 
-        <div>
-          <ul className="flex items-center justify-center space-x-4 text-secondary-600">
-            <li>
+        <div className="social-container">
+          <ul className="flex items-center justify-center mt-8 space-x-4 text-secondary-600">
+            <li className="group github-link">
               <a
                 href="https://github.com/tomnagengast"
                 className="hover:text-brand transition-colors"
@@ -50,7 +56,7 @@ Previously piping data with the fine folks at [Replit](https://blog.replit.com/h
                 />
               </a>
             </li>
-            <li>
+            <li className="group linkedin-link">
               <a
                 href="https://www.linkedin.com/in/tomnagengast"
                 className="hover:text-brand transition-colors"
@@ -67,7 +73,7 @@ Previously piping data with the fine folks at [Replit](https://blog.replit.com/h
                 </svg>
               </a>
             </li>
-            <li>
+            <li className="group email-link">
               <a
                 href="mailto:tnagengast@gmail.com"
                 className="hover:text-brand transition-colors"
@@ -91,6 +97,15 @@ Previously piping data with the fine folks at [Replit](https://blog.replit.com/h
               </a>
             </li>
           </ul>
+
+          <div className="flex justify-center mt-6 social-gifs relative h-10">
+            <div className="github-gif h-30 w-30 bg-cover bg-[url(https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExeTJrcjNmYW0zdXdkY29rNmFmOHVpOWtqYndsa3dtMm5xZTdrdTVvbSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/o0vwzuFwCGAFO/giphy.gif)]"></div>
+            {/* <div className="linkedin-gif h-30 w-30 bg-cover bg-[url(https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExNjVuNXNhbjlwb2M0Y2RhamNwbW1odjU5cTc0MjBybXlpMmljMWN0bCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/opDRL3H2A9iLNuvbOv/giphy.gif)]"></div> */}
+            <div className="linkedin-gif h-30 w-30 bg-cover bg-[url(https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExOXhqaGpxaXM3cm00OXlwanlsd3p3dDBmM2NnbnVxNnA3NHcxNTR2NCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3d4JvDzQsuca1nNwiQ/giphy.gif)]"></div>
+            <div className="email-gif h-30 w-30 bg-no-repeat bg-cover bg-[center_10%] bg-[url(https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExaXBxbXExbTdmYzJjZGR2aTQ0eWxicnZmZnV5MnU3Z3J6eTR0dzVtYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/bEiCMHLRap9TUYaqow/giphy.gif)]"></div>
+            {/* <div className="email-gif h-30 w-30 bg-no-repeat bg-cover bg-[center_10%] bg-[url(https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExeHpzbmkxN3htd280dTZuYXg3NjFvdndmbGd2a2xiNzMyOGlrMmpibyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/oUS6u2rbjg4JD4Z9Lp/giphy.gif)]"></div> */}
+            {/* <div className="email-gif h-30 w-30 bg-no-repeat bg-cover bg-[center_10%] bg-[url(https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExbjhrZ2tucWZnNjZtZ3ZkemM4NHdtd2xjaWFrbnBmM290MjI3ejR0aCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/gWNr07kKBUM3S/giphy.gif)]"></div> */}
+          </div>
         </div>
       </div>
     </div>
