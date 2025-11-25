@@ -11,8 +11,6 @@ function Notes() {
           </div>
         </Link>
 
-        <div className="text-6xl font-bold mb-8">Notes</div>
-
         <div className="space-y-6">
           {notes.length === 0 ? (
             <p className="text-slate-600">No notes yet. Check back soon!</p>

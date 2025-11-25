@@ -12,6 +12,7 @@ function Home() {
       "/gifs/typing-cat.gif",
       "/gifs/costanza-busy.gif",
       "/gifs/old-dance.gif",
+      "/gifs/office-skeleton.gif",
       "/gifs/static.gif"
     ];
 
@@ -34,6 +35,8 @@ function Home() {
         return "/gifs/costanza-busy.gif";
       case "email":
         return "/gifs/old-dance.gif";
+      case "notes":
+        return "/gifs/office-skeleton.gif";
       default:
         return "/gifs/static.gif";
     }
@@ -151,6 +154,35 @@ function Home() {
                 </svg>
               </a>
             </li>
+            <li
+              onMouseEnter={() => {
+                setShowBlob(true);
+                setHoveredIcon("notes");
+              }}
+              onMouseLeave={() => setHoveredIcon(null)}
+            >
+              <Link
+                to="/notes"
+                className="hover:text-brand transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="#000"
+                  height="20"
+                  width="20"
+                >
+                  <title>Notes</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+                  />
+                </svg>
+              </Link>
+            </li>
           </ul>
 
           <div
@@ -176,11 +208,6 @@ function Home() {
           </div>
         </div>
 
-        <div className="mt-12 text-center">
-          <Link to="/notes" className="text-slate-600 hover:text-slate-900 underline">
-            Read my notes →
-          </Link>
-        </div>
       </div>
     </div>
   );
