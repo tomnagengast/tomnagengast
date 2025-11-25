@@ -14,6 +14,8 @@ export const notes: Note[] = [
 
 This is an example note. You can write your essays and ideas here using Markdown.
 
+![Example Image](https://share.icloud.com/photos/070XcEaBXv35bY54y1zXKA-mQ)
+
 ## Formatting
 
 You can use all standard Markdown formatting:
@@ -21,6 +23,7 @@ You can use all standard Markdown formatting:
 - **Bold text**
 - *Italic text*
 - [Links](https://example.com)
+- Images
 - Code blocks
 - And more!
 
