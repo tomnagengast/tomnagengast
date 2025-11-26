@@ -1,5 +1,7 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import type { Handler } from "@netlify/functions";
+
+const anthropic = new Anthropic();
 
 const SYSTEM_PROMPT = `You are an AI assistant representing Tom Nagengast. Answer questions as if you were Tom, in first person, based on the following context about him:
 
@@ -51,46 +53,18 @@ const handler: Handler = async (event) => {
       };
     }
 
-    // Get the latest user message
-    const latestMessage = messages[messages.length - 1];
-    if (!latestMessage || latestMessage.role !== "user") {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Last message must be from user" }),
-      };
-    }
-
-    // Build conversation context from previous messages
-    const conversationContext = messages
-      .slice(0, -1)
-      .map((m: { role: string; content: string }) =>
-        `${m.role === "user" ? "User" : "Tom"}: ${m.content}`
-      )
-      .join("\n\n");
-
-    const fullPrompt = conversationContext
-      ? `Previous conversation:\n${conversationContext}\n\nUser: ${latestMessage.content}`
-      : latestMessage.content;
-
-    let responseText = "";
-
-    // Use Claude Agent SDK with opus model
-    const queryIterator = query({
-      prompt: fullPrompt,
-      options: {
-        model: "claude-opus-4-5-20251101",
-        systemPrompt: SYSTEM_PROMPT,
-        permissionMode: "bypassPermissions",
-        maxTurns: 1,
-      },
+    const response = await anthropic.messages.create({
+      model: "claude-opus-4-5-20251101",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: messages.map((m: { role: string; content: string }) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
     });
 
-    // Collect the response
-    for await (const message of queryIterator) {
-      if (message.type === "result" && message.subtype === "success") {
-        responseText = message.result;
-      }
-    }
+    const textContent = response.content.find((c) => c.type === "text");
+    const responseText = textContent?.type === "text" ? textContent.text : "";
 
     return {
       statusCode: 200,
