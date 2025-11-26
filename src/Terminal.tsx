@@ -40,6 +40,7 @@ Type 'help' for available commands.`,
   >([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-scroll to bottom when history changes
   useEffect(() => {
@@ -55,16 +56,32 @@ Type 'help' for available commands.`,
     }
   }, [isOpen]);
 
-  // Handle escape key to close
+  // Handle escape key and Ctrl+C to abort or close
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
+      if (!isOpen) return;
+
+      // ESC or Ctrl+C while loading in chat mode: abort the request
+      if (
+        (e.key === "Escape" || (e.key === "c" && e.ctrlKey)) &&
+        isLoading &&
+        isInChatMode
+      ) {
+        e.preventDefault();
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        return;
+      }
+
+      // ESC when not loading: close terminal
+      if (e.key === "Escape") {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isLoading, isInChatMode, onClose]);
 
   const addMessage = (type: Message["type"], content: string) => {
     setHistory((prev) => [...prev, { type, content }]);
@@ -114,8 +131,12 @@ Ask me about his work, projects, interests, or anything else!`
       return;
     }
 
+    // Create a new AbortController for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setIsLoading(true);
-    addMessage("thinking", "Thinking...");
+    addMessage("thinking", "Thinking... (ESC or Ctrl+C to cancel)");
 
     const newChatHistory = [
       ...chatHistory,
@@ -128,6 +149,7 @@ Ask me about his work, projects, interests, or anything else!`
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newChatHistory }),
+        signal,
       });
 
       if (!response.ok) {
@@ -148,16 +170,27 @@ Ask me about his work, projects, interests, or anything else!`
         ...newChatHistory,
         { role: "assistant", content: data.response },
       ]);
-    } catch {
-      setHistory((prev) =>
-        prev.filter((m) => m.type !== "thinking").concat({
-          type: "output",
-          content:
-            "Sorry, I couldn't connect to the AI service. Please try again later.",
-        })
-      );
+    } catch (error) {
+      // Check if this was an abort
+      if (error instanceof Error && error.name === "AbortError") {
+        setHistory((prev) =>
+          prev.filter((m) => m.type !== "thinking").concat({
+            type: "system",
+            content: "Request cancelled.",
+          })
+        );
+      } else {
+        setHistory((prev) =>
+          prev.filter((m) => m.type !== "thinking").concat({
+            type: "output",
+            content:
+              "Sorry, I couldn't connect to the AI service. Please try again later.",
+          })
+        );
+      }
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 

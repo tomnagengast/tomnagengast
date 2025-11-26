@@ -81,7 +81,6 @@ const handler: Handler = async (event) => {
         model: "claude-opus-4-5-20251101",
         systemPrompt: SYSTEM_PROMPT,
         permissionMode: "bypassPermissions",
-        maxTurns: 1,
       },
     });
 
