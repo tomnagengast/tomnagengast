@@ -270,6 +270,8 @@ Ask me about his work, projects, interests, or anything else!`
             className="flex-1 bg-transparent outline-none text-white caret-green-400"
             autoFocus
             spellCheck={false}
+            autoCapitalize="off"
+            autoCorrect="off"
           />
           <span className="animate-pulse">_</span>
         </div>
