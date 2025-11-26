@@ -245,6 +245,22 @@ Ask me about his work, projects, interests, or anything else!`
     }
   };
 
+  // Handler for toolbar abort button
+  const handleAbort = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+  };
+
+  // Handler for toolbar escape/close button
+  const handleEscape = () => {
+    if (isLoading && isInChatMode) {
+      handleAbort();
+    } else {
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -308,6 +324,33 @@ Ask me about his work, projects, interests, or anything else!`
           />
           <span className="animate-pulse">_</span>
         </div>
+      </div>
+
+      {/* Mobile keyboard toolbar - appears above the iOS keyboard */}
+      <div className="flex items-center gap-2 px-3 py-2 bg-gray-800 border-t border-gray-700">
+        <button
+          onClick={handleEscape}
+          className="px-3 py-1.5 text-xs font-medium bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-gray-200 rounded border border-gray-600"
+        >
+          esc
+        </button>
+        {isInChatMode && (
+          <button
+            onClick={handleAbort}
+            disabled={!isLoading}
+            className={`px-3 py-1.5 text-xs font-medium rounded border ${
+              isLoading
+                ? "bg-red-900/50 hover:bg-red-800/50 active:bg-red-700/50 text-red-300 border-red-700"
+                : "bg-gray-700 text-gray-500 border-gray-600 cursor-not-allowed"
+            }`}
+          >
+            ^C
+          </button>
+        )}
+        <span className="flex-1" />
+        <span className="text-gray-500 text-xs">
+          {isInChatMode ? "chat mode" : "terminal"}
+        </span>
       </div>
     </div>
   );
