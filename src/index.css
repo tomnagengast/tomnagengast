@@ -4,17 +4,26 @@
 @theme {
   --font-title: "Libre Franklin", serif;
   --color-boring: #1d4ed8;
+  --color-boring-dark: #60a5fa;
   --color-halloween: #f97316;
 }
 
 body {
   margin: 0;
   font-family: system-ui, -apple-system, sans-serif;
-  @apply text-slate-800;
+  @apply text-slate-800 bg-white transition-colors duration-200;
+}
+
+:root.dark body {
+  @apply text-slate-200 bg-slate-900;
 }
 
 a {
   @apply font-bold text-boring text-xl;
+}
+
+:root.dark a {
+  @apply text-boring-dark;
 }
 
 .title {
