@@ -1,14 +1,23 @@
 import { useState, useEffect } from "react";
 
 export function useDarkMode() {
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const saved = localStorage.getItem("darkMode");
-    if (saved !== null) return saved === "true";
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
+  const [isDark, setIsDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
+  // Initialize from localStorage/system preference after mount
   useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem("darkMode");
+    if (saved !== null) {
+      setIsDark(saved === "true");
+    } else {
+      setIsDark(window.matchMedia("(prefers-color-scheme: dark)").matches);
+    }
+  }, []);
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (!mounted) return;
     const root = document.documentElement;
     if (isDark) {
       root.classList.add("dark");
@@ -16,7 +25,7 @@ export function useDarkMode() {
       root.classList.remove("dark");
     }
     localStorage.setItem("darkMode", String(isDark));
-  }, [isDark]);
+  }, [isDark, mounted]);
 
   const toggle = () => setIsDark((prev) => !prev);
 
