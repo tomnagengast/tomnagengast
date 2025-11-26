@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tom Nagengast</title>
+    <link>https://tomnagengast.com</link>
+    <description>Essays and ideas from Tom Nagengast</description>
+    <language>en-us</language>
+    <atom:link href="https://tomnagengast.com/rss.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Example Note</title>
+      <link>https://tomnagengast.com/notes/example-note</link>
+      <guid>https://tomnagengast.com/notes/example-note</guid>
+      <pubDate>Wed, 15 Jan 2025 00:00:00 GMT</pubDate>
+      <description>Example Note
+
+This is an example note. You can write your essays and ideas here using Markdown.
+
+!Example Image
+
+Formatting
+
+You can use all standard Markdown formatting:
+
+Bold text
+Italic text
+Links
+...</description>
+    </item>
+  </channel>
+</rss>
