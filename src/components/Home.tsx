@@ -1,10 +1,14 @@
 import Markdown from "react-markdown";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import Terminal from "../Terminal";
+import { useDarkMode } from "../useDarkMode";
 
 function Home() {
   const [showBlob, setShowBlob] = useState(false);
   const [hoveredIcon, setHoveredIcon] = useState<string | null>(null);
+  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
+  const { isDark, toggle: toggleDarkMode } = useDarkMode();
 
   useEffect(() => {
     // Preload all GIFs
@@ -37,6 +41,8 @@ function Home() {
         return "/gifs/old-dance.gif";
       case "notes":
         return "/gifs/office-skeleton.gif";
+      case "terminal":
+        return "/gifs/typing-cat.gif";
       default:
         return "/gifs/static.gif";
     }
@@ -45,7 +51,7 @@ function Home() {
     <div className="container mx-auto max-w-xl px-4 lg:px-0">
       <div className="mt-24">
         <a href="https://tomnagengast.com/">
-          <div className="flex justify-between items-center text-xl underline text-slate-900">
+          <div className="flex justify-between items-center text-xl underline text-slate-900 dark:text-slate-100">
             Tom Nagengast
           </div>
         </a>
@@ -99,6 +105,7 @@ function Home() {
                   width="20"
                   src="https://unpkg.com/simple-icons@v15/icons/github.svg"
                   alt="GitHub"
+                  className="dark:invert"
                 />
               </a>
             </li>
@@ -119,6 +126,7 @@ function Home() {
                   xmlns="http://www.w3.org/2000/svg"
                   height="20"
                   width="20"
+                  className="fill-current text-black dark:text-white"
                 >
                   <title>LinkedIn</title>
                   <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
@@ -141,9 +149,10 @@ function Home() {
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth="2"
-                  stroke="#000"
+                  stroke="currentColor"
                   height="20"
                   width="20"
+                  className="text-black dark:text-white"
                 >
                   <title>Email Me!</title>
                   <path
@@ -170,9 +179,10 @@ function Home() {
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth="2"
-                  stroke="#000"
+                  stroke="currentColor"
                   height="20"
                   width="20"
+                  className="text-black dark:text-white"
                 >
                   <title>Notes</title>
                   <path
@@ -182,6 +192,80 @@ function Home() {
                   />
                 </svg>
               </Link>
+            </li>
+            <li
+              onMouseEnter={() => {
+                setShowBlob(true);
+                setHoveredIcon("terminal");
+              }}
+              onMouseLeave={() => setHoveredIcon(null)}
+            >
+              <button
+                onClick={() => setIsTerminalOpen(true)}
+                className="hover:text-brand transition-colors cursor-pointer"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="currentColor"
+                  height="20"
+                  width="20"
+                  className="text-black dark:text-white"
+                >
+                  <title>Open Terminal</title>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z"
+                  />
+                </svg>
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={toggleDarkMode}
+                className="hover:text-brand transition-colors cursor-pointer"
+              >
+                {isDark ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    height="20"
+                    width="20"
+                    className="text-white"
+                  >
+                    <title>Light Mode</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="2"
+                    stroke="currentColor"
+                    height="20"
+                    width="20"
+                    className="text-black"
+                  >
+                    <title>Dark Mode</title>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"
+                    />
+                  </svg>
+                )}
+              </button>
             </li>
           </ul>
 
@@ -209,6 +293,11 @@ function Home() {
         </div>
 
       </div>
+
+      <Terminal
+        isOpen={isTerminalOpen}
+        onClose={() => setIsTerminalOpen(false)}
+      />
     </div>
   );
 }
