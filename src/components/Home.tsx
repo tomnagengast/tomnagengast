@@ -88,6 +88,7 @@ function Home() {
         <div className="social-container">
           <ul className="flex items-center justify-center mt-8 space-x-4 text-secondary-600">
             <li
+              className="flex items-center"
               onMouseEnter={() => {
                 setShowBlob(true);
                 setHoveredIcon("github");
@@ -108,6 +109,7 @@ function Home() {
               </a>
             </li>
             <li
+              className="flex items-center"
               onMouseEnter={() => {
                 setShowBlob(true);
                 setHoveredIcon("linkedin");
@@ -132,6 +134,7 @@ function Home() {
               </a>
             </li>
             <li
+              className="flex items-center"
               onMouseEnter={() => {
                 setShowBlob(true);
                 setHoveredIcon("email");
@@ -162,6 +165,7 @@ function Home() {
               </a>
             </li>
             <li
+              className="flex items-center"
               onMouseEnter={() => {
                 setShowBlob(true);
                 setHoveredIcon("notes");
@@ -192,6 +196,7 @@ function Home() {
               </Link>
             </li>
             <li
+              className="flex items-center"
               onMouseEnter={() => {
                 setShowBlob(true);
                 setHoveredIcon("terminal");
