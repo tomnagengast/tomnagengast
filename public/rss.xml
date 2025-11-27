@@ -7,24 +7,17 @@
     <language>en-us</language>
     <atom:link href="https://tomnagengast.com/rss.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>Example Note</title>
-      <link>https://tomnagengast.com/notes/example-note</link>
-      <guid>https://tomnagengast.com/notes/example-note</guid>
-      <pubDate>Wed, 15 Jan 2025 00:00:00 GMT</pubDate>
-      <description>Example Note
+      <title>Building This Site</title>
+      <link>https://tomnagengast.com/notes/building-this-site</link>
+      <guid>https://tomnagengast.com/notes/building-this-site</guid>
+      <pubDate>Wed, 26 Nov 2025 00:00:00 GMT</pubDate>
+      <description>Building This Site
 
-This is an example note. You can write your essays and ideas here using Markdown.
+I wanted a simple portfolio site that felt personal but wasn&apos;t boring. Here&apos;s how I built it with React, Tailwind, and a few Easter eggs.
 
-!Example Image
+The GIF Easter Eggs
 
-Formatting
-
-You can use all standard Markdown formatting:
-
-Bold text
-Italic text
-Links
-...</description>
+Hover over any of th...</description>
     </item>
   </channel>
 </rss>
