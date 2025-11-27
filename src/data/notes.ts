@@ -9,7 +9,7 @@ export const notes: Note[] = [
   {
     slug: "building-this-site",
     title: "Building This Site",
-    date: "2025-11-26",
+    date: "2025-11-27",
     content: `# Building This Site
 
 I wanted a simple portfolio site that felt personal but wasn't boring. Here's how I built it with React, Tailwind, and a few Easter eggs.
@@ -50,17 +50,25 @@ The terminal is a React component with command parsing, history management, and 
 
 ### The \`tom\` Agent
 
-Type \`tom\` in the terminal and you can chat with an AI version of me. It uses the [Claude Agent SDK](https://github.com/anthropics/claude-agent-sdk) running on a Netlify function.
+Type \`tom\` in the terminal and you can chat with an AI version of me. It runs on [Modal](https://modal.com), a serverless platform that spins up full Linux containers on demand.
 
-\`\`\`ts
-const queryIterator = query({
-  prompt: userMessage,
-  options: {
-    model: "claude-opus-4-5-20251101",
-    systemPrompt: SYSTEM_PROMPT,
-    permissionMode: "bypassPermissions",
-  },
-});
+Why Modal instead of a typical serverless function? I wanted to use the Claude Code CLI, which needs a real Linux environment to run. Modal lets me define the entire container as code:
+
+\`\`\`python
+image = (
+    modal.Image.debian_slim()
+    .apt_install("curl", "nodejs", "npm")
+    .run_commands("npm install -g @anthropic-ai/claude-code")
+)
+
+@app.function(image=image)
+@modal.fastapi_endpoint(method="POST")
+def chat(request: dict):
+    result = subprocess.run(
+        ["claude", "--print", "-p", prompt],
+        capture_output=True
+    )
+    return {"response": result.stdout}
 \`\`\`
 
 The system prompt gives Claude context about my background, work history, and interests so it can answer questions the way I would. Press \`ESC\` or \`Ctrl+C\` to cancel a request mid-flight—there's an AbortController wired up for that.
@@ -77,19 +85,15 @@ The RSS feed is auto-generated at build time by a script that reads the notes ar
 
 \`\`\`ts
 // scripts/generate-rss.ts
-const feed = new RSS({
-  title: "Tom Nagengast's Notes",
-  feed_url: "https://tomnagengast.com/rss.xml",
-  site_url: "https://tomnagengast.com",
-});
+const sortedNotes = [...notes].sort((a, b) =>
+  new Date(b.date).getTime() - new Date(a.date).getTime()
+);
 
-notes.forEach(note => {
-  feed.item({
-    title: note.title,
-    url: \`https://tomnagengast.com/notes/\${note.slug}\`,
-    date: note.date,
-    description: note.content,
-  });
+sortedNotes.map((note) => {
+  const description = strippedContent.length > 200
+    ? strippedContent.slice(0, 200) + "..."
+    : strippedContent;
+  // ...
 });
 \`\`\`
 
@@ -99,10 +103,13 @@ notes.forEach(note => {
 - **Vite** - fast builds, good defaults
 - **Tailwind CSS 4** - utility classes with \`darkMode: "media"\` for system preference support
 - **React Router** - client-side routing for notes
-- **Netlify Functions** - serverless API for the AI chat
-- **Claude Agent SDK** - powers the \`tom\` command
+- **Modal** - serverless containers for the AI agent
+- **Claude Code CLI** - powers the \`tom\` command
+- **GitHub Actions** - auto-deploys Modal on push
 
-The whole thing is deployed on Netlify with automatic deploys from GitHub. The site is intentionally minimal—no analytics, no cookies, no tracking. Just words and GIFs.
+The site itself is deployed on Netlify with automatic deploys from GitHub. The Modal function deploys separately via GitHub Actions whenever the \`modal/\` directory changes.
+
+The whole thing is intentionally minimal—no analytics, no cookies, no tracking. Just words and GIFs.
 
 ---
 
