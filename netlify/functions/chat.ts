@@ -1,4 +1,4 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import Anthropic from "@anthropic-ai/sdk";
 import type { Handler } from "@netlify/functions";
 
 const SYSTEM_PROMPT = `You are an AI assistant representing Tom Nagengast. Answer questions as if you were Tom, in first person, based on the following context about him:
@@ -60,46 +60,32 @@ const handler: Handler = async (event) => {
       };
     }
 
-    // Build conversation context from previous messages
-    const conversationContext = messages
-      .slice(0, -1)
-      .map((m: { role: string; content: string }) =>
-        `${m.role === "user" ? "User" : "Tom"}: ${m.content}`
-      )
-      .join("\n\n");
-
-    const fullPrompt = conversationContext
-      ? `Previous conversation:\n${conversationContext}\n\nUser: ${latestMessage.content}`
-      : latestMessage.content;
-
-    let responseText = "";
-    const debugMessages: unknown[] = [];
-
-    console.log("[DEBUG] Starting query with prompt:", fullPrompt.substring(0, 100) + "...");
     console.log("[DEBUG] Has ANTHROPIC_API_KEY:", !!process.env.ANTHROPIC_API_KEY);
 
-    // Use Claude Agent SDK with opus model
-    const queryIterator = query({
-      prompt: fullPrompt,
-      options: {
-        model: "claude-opus-4-5-20251101",
-        systemPrompt: SYSTEM_PROMPT,
-        permissionMode: "bypassPermissions",
-      },
+    const client = new Anthropic();
+
+    // Convert messages to Anthropic format
+    const anthropicMessages = messages.map((m: { role: string; content: string }) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
+
+    console.log("[DEBUG] Sending request to Claude with", anthropicMessages.length, "messages");
+
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: anthropicMessages,
     });
 
-    // Collect the response
-    for await (const message of queryIterator) {
-      console.log("[DEBUG] Received message:", JSON.stringify(message).substring(0, 200));
-      debugMessages.push({ type: message.type, subtype: (message as { subtype?: string }).subtype });
+    console.log("[DEBUG] Response received, stop_reason:", response.stop_reason);
 
-      if (message.type === "result" && message.subtype === "success") {
-        responseText = message.result;
-      }
-    }
-
-    console.log("[DEBUG] Final response length:", responseText.length);
-    console.log("[DEBUG] All message types:", debugMessages);
+    // Extract text from response
+    const responseText = response.content
+      .filter((block) => block.type === "text")
+      .map((block) => block.text)
+      .join("\n");
 
     return {
       statusCode: 200,
@@ -130,7 +116,7 @@ const handler: Handler = async (event) => {
           stack: errorStack,
           hasApiKey: !!process.env.ANTHROPIC_API_KEY,
           apiKeyPrefix: process.env.ANTHROPIC_API_KEY?.substring(0, 10) + "...",
-        }
+        },
       }),
     };
   }
