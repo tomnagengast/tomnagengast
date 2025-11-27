@@ -152,11 +152,15 @@ Ask me about his work, projects, interests, or anything else!`
         signal,
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to get response");
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        // Show debug info for errors
+        const debugInfo = data.debug
+          ? `\n\n[DEBUG]\nMessage: ${data.debug.message}\nHas API Key: ${data.debug.hasApiKey}\nKey prefix: ${data.debug.apiKeyPrefix}\nStack: ${data.debug.stack?.split("\n").slice(0, 3).join("\n")}`
+          : "";
+        throw new Error(`API Error (${response.status}): ${data.error}${debugInfo}`);
+      }
 
       // Remove thinking message and add response
       setHistory((prev) =>
@@ -180,11 +184,11 @@ Ask me about his work, projects, interests, or anything else!`
           })
         );
       } else {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         setHistory((prev) =>
           prev.filter((m) => m.type !== "thinking").concat({
             type: "output",
-            content:
-              "Sorry, I couldn't connect to the AI service. Please try again later.",
+            content: `Error: ${errorMessage}`,
           })
         );
       }

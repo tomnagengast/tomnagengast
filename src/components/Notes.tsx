@@ -7,13 +7,13 @@ function Notes() {
       <div className="mt-24">
         <div className="flex justify-between items-center mb-8">
           <Link to="/">
-            <div className="text-xl underline text-slate-900">
+            <div className="text-xl underline text-slate-900 dark:text-slate-100">
               Tom Nagengast
             </div>
           </Link>
           <a
             href="/rss.xml"
-            className="text-slate-600 hover:text-slate-900 transition-colors"
+            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 transition-colors"
             title="Subscribe to RSS feed"
           >
             <svg
@@ -37,7 +37,7 @@ function Notes() {
 
         <div className="space-y-6">
           {notes.length === 0 ? (
-            <p className="text-slate-600">No notes yet. Check back soon!</p>
+            <p className="text-slate-600 dark:text-slate-400">No notes yet. Check back soon!</p>
           ) : (
             notes.map((note) => (
               <Link
@@ -45,11 +45,11 @@ function Notes() {
                 to={`/notes/${note.slug}`}
                 className="block group"
               >
-                <article className="border-b border-slate-200 pb-6 hover:border-slate-400 transition-colors">
-                  <h2 className="text-2xl font-semibold text-slate-900 group-hover:text-slate-600 transition-colors">
+                <article className="border-b border-slate-200 dark:border-slate-700 pb-6 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+                  <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">
                     {note.title}
                   </h2>
-                  <time className="text-sm text-slate-500 mt-2 block">
+                  <time className="text-sm text-slate-500 dark:text-slate-400 mt-2 block">
                     {new Date(note.date).toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",

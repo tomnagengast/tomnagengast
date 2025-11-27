@@ -73,6 +73,10 @@ const handler: Handler = async (event) => {
       : latestMessage.content;
 
     let responseText = "";
+    const debugMessages: unknown[] = [];
+
+    console.log("[DEBUG] Starting query with prompt:", fullPrompt.substring(0, 100) + "...");
+    console.log("[DEBUG] Has ANTHROPIC_API_KEY:", !!process.env.ANTHROPIC_API_KEY);
 
     // Use Claude Agent SDK with opus model
     const queryIterator = query({
@@ -86,10 +90,16 @@ const handler: Handler = async (event) => {
 
     // Collect the response
     for await (const message of queryIterator) {
+      console.log("[DEBUG] Received message:", JSON.stringify(message).substring(0, 200));
+      debugMessages.push({ type: message.type, subtype: (message as { subtype?: string }).subtype });
+
       if (message.type === "result" && message.subtype === "success") {
         responseText = message.result;
       }
     }
+
+    console.log("[DEBUG] Final response length:", responseText.length);
+    console.log("[DEBUG] All message types:", debugMessages);
 
     return {
       statusCode: 200,
@@ -99,10 +109,29 @@ const handler: Handler = async (event) => {
       body: JSON.stringify({ response: responseText }),
     };
   } catch (error) {
-    console.error("Error calling Claude API:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    console.error("Error calling Claude API:", {
+      message: errorMessage,
+      stack: errorStack,
+      error,
+    });
+
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Failed to process request" }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        error: "Failed to process request",
+        debug: {
+          message: errorMessage,
+          stack: errorStack,
+          hasApiKey: !!process.env.ANTHROPIC_API_KEY,
+          apiKeyPrefix: process.env.ANTHROPIC_API_KEY?.substring(0, 10) + "...",
+        }
+      }),
     };
   }
 };

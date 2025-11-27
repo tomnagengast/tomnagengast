@@ -1,5 +1,6 @@
 @import url(https://fonts.bunny.net/css?family=libre-franklin:900);
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme {
   --font-title: "Libre Franklin", serif;
