@@ -17,13 +17,15 @@ function escapeXml(unsafe: string): string {
 
 function stripMarkdown(markdown: string): string {
   // Remove markdown formatting for description
+  // Note: Images must be removed BEFORE links (image syntax contains link-like syntax)
   return markdown
     .replace(/^#+\s+/gm, "") // Remove headers
     .replace(/\*\*([^*]+)\*\*/g, "$1") // Remove bold
     .replace(/\*([^*]+)\*/g, "$1") // Remove italic
+    .replace(/!\[([^\]]*)\]\([^\)]+\)/g, "") // Remove images (before links!)
     .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1") // Remove links, keep text
-    .replace(/!\[([^\]]*)\]\([^\)]+\)/g, "") // Remove images
     .replace(/`([^`]+)`/g, "$1") // Remove inline code
+    .replace(/```[\s\S]*?```/g, "") // Remove code blocks
     .replace(/^[-*+]\s+/gm, "") // Remove list markers
     .trim();
 }
@@ -36,7 +38,10 @@ function generateRSS(): string {
   const items = sortedNotes
     .map((note) => {
       const url = `${SITE_URL}/notes/${note.slug}`;
-      const description = stripMarkdown(note.content).slice(0, 200) + "...";
+      const strippedContent = stripMarkdown(note.content);
+      const description = strippedContent.length > 200
+        ? strippedContent.slice(0, 200) + "..."
+        : strippedContent;
       const pubDate = new Date(note.date).toUTCString();
 
       return `    <item>

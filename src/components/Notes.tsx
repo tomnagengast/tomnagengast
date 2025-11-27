@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
 import { notes } from "../data/notes";
 
+// Sort notes by date (newest first)
+const sortedNotes = [...notes].sort(
+  (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+);
+
 function Notes() {
   return (
     <div className="container mx-auto max-w-xl px-4 lg:px-0">
@@ -36,10 +41,10 @@ function Notes() {
         </div>
 
         <div className="space-y-6">
-          {notes.length === 0 ? (
+          {sortedNotes.length === 0 ? (
             <p className="text-slate-600 dark:text-slate-400">No notes yet. Check back soon!</p>
           ) : (
-            notes.map((note) => (
+            sortedNotes.map((note) => (
               <Link
                 key={note.slug}
                 to={`/notes/${note.slug}`}
@@ -50,10 +55,11 @@ function Notes() {
                     {note.title}
                   </h2>
                   <time className="text-sm text-slate-500 dark:text-slate-400 mt-2 block">
-                    {new Date(note.date).toLocaleDateString("en-US", {
+                    {new Date(note.date + "T00:00:00").toLocaleDateString("en-US", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
+                      timeZone: "UTC",
                     })}
                   </time>
                 </article>

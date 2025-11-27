@@ -27,10 +27,11 @@ function Note() {
         <article className="mt-8">
           <h1 className="text-4xl font-bold mb-4 dark:text-white">{note.title}</h1>
           <time className="text-sm text-slate-500 dark:text-slate-400 block mb-8">
-            {new Date(note.date).toLocaleDateString("en-US", {
+            {new Date(note.date + "T00:00:00").toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
               day: "numeric",
+              timeZone: "UTC",
             })}
           </time>
 
