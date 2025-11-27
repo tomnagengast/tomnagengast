@@ -56,6 +56,14 @@ Type 'help' for available commands.`,
     }
   }, [isOpen]);
 
+  // Reset terminal state when closed (Bug fix: chat mode was persisting)
+  useEffect(() => {
+    if (!isOpen) {
+      setIsInChatMode(false);
+      setChatHistory([]);
+    }
+  }, [isOpen]);
+
   // Handle escape key and Ctrl+C to abort or close
   useEffect(() => {
     const handleKeyDown = (e: globalThis.KeyboardEvent) => {
@@ -125,9 +133,17 @@ Ask me about his work, projects, interests, or anything else!`
   };
 
   const handleChatMessage = async (message: string) => {
-    if (message.toLowerCase() === "exit") {
+    const lowerMessage = message.toLowerCase();
+
+    // Handle special commands even in chat mode (Bug fix: clear was unavailable)
+    if (lowerMessage === "exit") {
       setIsInChatMode(false);
       addMessage("system", "Exiting chat mode. Back to normal terminal.");
+      return;
+    }
+
+    if (lowerMessage === "clear") {
+      setHistory([]);
       return;
     }
 
@@ -175,6 +191,9 @@ Ask me about his work, projects, interests, or anything else!`
         { role: "assistant", content: data.response },
       ]);
     } catch (error) {
+      // Revert chatHistory on error (Bug fix: orphaned user messages)
+      setChatHistory(chatHistory);
+
       // Check if this was an abort
       if (error instanceof Error && error.name === "AbortError") {
         setHistory((prev) =>
