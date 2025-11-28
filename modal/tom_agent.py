@@ -1,15 +1,20 @@
 """
-Modal function for Tom's AI agent using Anthropic SDK with streaming.
+Modal function for Tom's AI agent using Claude Agent SDK with tools.
 
 Deploy with: modal deploy modal/tom_agent.py
 """
 
 import modal
-from typing import List, Optional
 
-# Build image with Anthropic SDK
+# Build image with Claude Agent SDK and Node.js for Claude Code
 image = (
     modal.Image.debian_slim(python_version="3.11")
+    .apt_install("curl", "ca-certificates", "gnupg")
+    .run_commands(
+        "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
+        "apt-get install -y nodejs",
+    )
+    .run_commands("npm install -g @anthropic-ai/claude-code")
     .pip_install("anthropic", "fastapi[standard]", "pydantic")
 )
 
@@ -45,7 +50,9 @@ When answering:
 2. Be conversational and friendly
 3. If you don't know something specific about Tom, say so honestly
 4. Keep responses concise but helpful
-5. Feel free to share relevant experiences from Tom's background"""
+5. Feel free to share relevant experiences from Tom's background
+
+You have access to tools including web search. Use them when helpful to provide accurate, up-to-date information."""
 
 
 @app.function(
@@ -56,12 +63,12 @@ When answering:
 @modal.fastapi_endpoint(method="POST")
 def chat(body: dict):
     """
-    Streaming chat endpoint using Anthropic SDK.
+    Chat endpoint using Claude Code CLI with tools.
     Returns Server-Sent Events for real-time streaming.
     """
     import os
     import json
-    import anthropic
+    import subprocess
     from fastapi.responses import StreamingResponse
 
     messages = body.get("messages", [])
@@ -75,29 +82,55 @@ def chat(body: dict):
     if latest_message.get("role") != "user":
         return {"error": "Last message must be from user"}
 
-    # Convert to Anthropic format
-    anthropic_messages = [
-        {"role": m["role"], "content": m["content"]}
-        for m in messages
-    ]
+    # Build conversation context
+    conversation_parts = []
+    for msg in messages[:-1]:
+        role = "User" if msg["role"] == "user" else "Tom"
+        conversation_parts.append(f"{role}: {msg['content']}")
 
-    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    if conversation_parts:
+        full_prompt = f"Previous conversation:\n" + "\n\n".join(conversation_parts) + f"\n\nUser: {latest_message['content']}"
+    else:
+        full_prompt = latest_message["content"]
+
+    # Combine system prompt with user prompt
+    combined_prompt = f"{SYSTEM_PROMPT}\n\n---\n\nRespond to this message:\n{full_prompt}"
+
+    env = {**os.environ, "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", "")}
 
     if stream:
         def generate():
             try:
-                with client.messages.stream(
-                    model="claude-sonnet-4-20250514",
-                    max_tokens=1024,
-                    system=SYSTEM_PROMPT,
-                    messages=anthropic_messages,
-                ) as stream_response:
-                    for text in stream_response.text_stream:
-                        # Send as SSE format
-                        yield f"data: {json.dumps({'text': text})}\n\n"
+                # Run Claude Code CLI with streaming
+                process = subprocess.Popen(
+                    [
+                        "claude",
+                        "--print",
+                        "--model", "claude-sonnet-4-20250514",
+                        "--max-turns", "3",
+                        "--allowedTools", "WebSearch",
+                        "-p", combined_prompt,
+                    ],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    env=env,
+                    bufsize=1,
+                )
 
-                # Send done signal
-                yield f"data: {json.dumps({'done': True})}\n\n"
+                # Stream stdout line by line
+                for line in iter(process.stdout.readline, ''):
+                    if line:
+                        yield f"data: {json.dumps({'text': line})}\n\n"
+
+                process.wait()
+
+                if process.returncode != 0:
+                    stderr = process.stderr.read()
+                    yield f"data: {json.dumps({'error': f'CLI failed: {stderr[:500]}'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'done': True})}\n\n"
+
             except Exception as e:
                 yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
@@ -113,19 +146,31 @@ def chat(body: dict):
     else:
         # Non-streaming fallback
         try:
-            response = client.messages.create(
-                model="claude-sonnet-4-20250514",
-                max_tokens=1024,
-                system=SYSTEM_PROMPT,
-                messages=anthropic_messages,
+            result = subprocess.run(
+                [
+                    "claude",
+                    "--print",
+                    "--model", "claude-sonnet-4-20250514",
+                    "--max-turns", "3",
+                    "--allowedTools", "WebSearch",
+                    "-p", combined_prompt,
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120,
+                env=env,
             )
 
-            response_text = "".join(
-                block.text for block in response.content
-                if hasattr(block, "text")
-            )
+            if result.returncode != 0:
+                return {
+                    "error": "Claude CLI failed",
+                    "debug": {"stderr": result.stderr[:500] if result.stderr else None}
+                }
 
-            return {"response": response_text}
+            return {"response": result.stdout.strip()}
+
+        except subprocess.TimeoutExpired:
+            return {"error": "Request timed out"}
         except Exception as e:
             return {"error": str(e)}
 
