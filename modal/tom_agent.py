@@ -5,11 +5,12 @@ Deploy with: modal deploy modal/tom_agent.py
 """
 
 import modal
+from typing import List, Optional
 
 # Build image with Anthropic SDK
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .pip_install("anthropic", "fastapi[standard]")
+    .pip_install("anthropic", "fastapi[standard]", "pydantic")
 )
 
 app = modal.App("tom-agent", image=image)
@@ -53,7 +54,7 @@ When answering:
     image=image,
 )
 @modal.fastapi_endpoint(method="POST")
-async def chat(request):
+def chat(body: dict):
     """
     Streaming chat endpoint using Anthropic SDK.
     Returns Server-Sent Events for real-time streaming.
@@ -63,7 +64,6 @@ async def chat(request):
     import anthropic
     from fastapi.responses import StreamingResponse
 
-    body = await request.json()
     messages = body.get("messages", [])
     stream = body.get("stream", True)
 
@@ -84,7 +84,7 @@ async def chat(request):
     client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
     if stream:
-        async def generate():
+        def generate():
             try:
                 with client.messages.stream(
                     model="claude-sonnet-4-20250514",
