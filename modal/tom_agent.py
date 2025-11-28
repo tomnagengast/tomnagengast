@@ -52,7 +52,7 @@ When answering:
 4. Keep responses concise but helpful
 5. Feel free to share relevant experiences from Tom's background
 
-You have access to tools including web search. Use them when helpful to provide accurate, up-to-date information."""
+You have access to tools including web search, bash, file operations, and more. Use them when helpful to provide accurate, up-to-date information."""
 
 
 @app.function(
@@ -107,7 +107,7 @@ def chat(body: dict):
                         "claude",
                         "--print",
                         "--model", "claude-sonnet-4-20250514",
-                        "--allowedTools", "WebSearch",
+                        "--dangerously-skip-permissions",
                         "-p", combined_prompt,
                     ],
                     stdout=subprocess.PIPE,
@@ -150,7 +150,7 @@ def chat(body: dict):
                     "claude",
                     "--print",
                     "--model", "claude-sonnet-4-20250514",
-                    "--allowedTools", "WebSearch",
+                    "--dangerously-skip-permissions",
                     "-p", combined_prompt,
                 ],
                 capture_output=True,
