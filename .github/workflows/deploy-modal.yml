@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - main
+      - 'claude/**'  # Also run on PR branches
     paths:
       - 'modal/**'
+      - '.github/workflows/deploy-modal.yml'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
