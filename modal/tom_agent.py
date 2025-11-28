@@ -1,26 +1,18 @@
 """
-Modal function for Tom's AI agent using Claude Code CLI.
+Modal function for Tom's AI agent using Claude Agent SDK with streaming.
 
 Deploy with: modal deploy modal/tom_agent.py
 """
 
 import modal
-import subprocess
-import json
 import os
+from fastapi import Request
+from fastapi.responses import StreamingResponse
 
-# Build image with Node.js and Claude Code CLI
+# Build image with Claude Agent SDK
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .apt_install("curl", "ca-certificates", "gnupg")
-    # Install Node.js 20
-    .run_commands(
-        "curl -fsSL https://deb.nodesource.com/setup_20.x | bash -",
-        "apt-get install -y nodejs",
-    )
-    # Install Claude Code CLI globally
-    .run_commands("npm install -g @anthropic-ai/claude-code")
-    .pip_install("fastapi[standard]")
+    .pip_install("anthropic", "fastapi[standard]")
 )
 
 app = modal.App("tom-agent", image=image)
@@ -60,23 +52,20 @@ When answering:
 
 @app.function(
     secrets=[modal.Secret.from_name("anthropic-api-key")],
-    timeout=300,  # 5 minute timeout for longer conversations
+    timeout=300,
 )
 @modal.fastapi_endpoint(method="POST")
-def chat(request: dict):
+async def chat(request: Request):
     """
-    Chat endpoint that uses Claude Code CLI.
+    Streaming chat endpoint using Anthropic SDK.
+    Returns Server-Sent Events for real-time streaming.
+    """
+    import anthropic
+    import json
 
-    Request body:
-    {
-        "messages": [
-            {"role": "user", "content": "Hello!"},
-            {"role": "assistant", "content": "Hi there!"},
-            {"role": "user", "content": "What do you work on?"}
-        ]
-    }
-    """
-    messages = request.get("messages", [])
+    body = await request.json()
+    messages = body.get("messages", [])
+    stream = body.get("stream", True)
 
     if not messages:
         return {"error": "No messages provided"}
@@ -86,57 +75,59 @@ def chat(request: dict):
     if latest_message.get("role") != "user":
         return {"error": "Last message must be from user"}
 
-    # Build conversation context
-    conversation_parts = []
-    for msg in messages[:-1]:
-        role = "User" if msg["role"] == "user" else "Tom"
-        conversation_parts.append(f"{role}: {msg['content']}")
+    # Convert to Anthropic format
+    anthropic_messages = [
+        {"role": m["role"], "content": m["content"]}
+        for m in messages
+    ]
 
-    if conversation_parts:
-        full_prompt = f"Previous conversation:\n" + "\n\n".join(conversation_parts) + f"\n\nUser: {latest_message['content']}"
-    else:
-        full_prompt = latest_message["content"]
+    client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-    # Combine system prompt with user prompt
-    combined_prompt = f"{SYSTEM_PROMPT}\n\n---\n\nRespond to this message:\n{full_prompt}"
+    if stream:
+        async def generate():
+            try:
+                with client.messages.stream(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=1024,
+                    system=SYSTEM_PROMPT,
+                    messages=anthropic_messages,
+                ) as stream_response:
+                    for text in stream_response.text_stream:
+                        # Send as SSE format
+                        yield f"data: {json.dumps({'text': text})}\n\n"
 
-    try:
-        # Run Claude Code CLI
-        # Using --print to just get the response without interactive mode
-        result = subprocess.run(
-            [
-                "claude",
-                "--print",
-                "--model", "claude-sonnet-4-20250514",
-                "--max-turns", "1",
-                "-p", combined_prompt,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            env={**os.environ, "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", "")},
-        )
+                # Send done signal
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-        if result.returncode != 0:
-            return {
-                "error": "Claude CLI failed",
-                "debug": {
-                    "stderr": result.stderr[:500] if result.stderr else None,
-                    "returncode": result.returncode,
-                }
+        return StreamingResponse(
+            generate(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
             }
+        )
+    else:
+        # Non-streaming fallback
+        try:
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1024,
+                system=SYSTEM_PROMPT,
+                messages=anthropic_messages,
+            )
 
-        response_text = result.stdout.strip()
+            response_text = "".join(
+                block.text for block in response.content
+                if hasattr(block, "text")
+            )
 
-        return {"response": response_text}
-
-    except subprocess.TimeoutExpired:
-        return {"error": "Request timed out"}
-    except Exception as e:
-        return {
-            "error": str(e),
-            "debug": {"type": type(e).__name__}
-        }
+            return {"response": response_text}
+        except Exception as e:
+            return {"error": str(e)}
 
 
 # Health check endpoint

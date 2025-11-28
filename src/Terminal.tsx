@@ -152,7 +152,6 @@ Ask me about his work, projects, interests, or anything else!`
     const signal = abortControllerRef.current.signal;
 
     setIsLoading(true);
-    addMessage("thinking", "Thinking... (ESC or Ctrl+C to cancel)");
 
     const newChatHistory = [
       ...chatHistory,
@@ -160,35 +159,83 @@ Ask me about his work, projects, interests, or anything else!`
     ];
     setChatHistory(newChatHistory);
 
+    // Add an empty streaming output message that we'll update
+    setHistory((prev) => [...prev, { type: "output", content: "" }]);
+
+    let fullResponse = "";
+
     try {
       const response = await fetch("/.netlify/functions/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newChatHistory }),
+        body: JSON.stringify({ messages: newChatHistory, stream: true }),
         signal,
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        // Show debug info for errors
+        const data = await response.json();
         const debugInfo = data.debug
-          ? `\n\n[DEBUG]\nMessage: ${data.debug.message}\nHas API Key: ${data.debug.hasApiKey}\nKey prefix: ${data.debug.apiKeyPrefix}\nStack: ${data.debug.stack?.split("\n").slice(0, 3).join("\n")}`
+          ? `\n\n[DEBUG]\nMessage: ${data.debug.message}\nStack: ${data.debug.stack?.split("\n").slice(0, 3).join("\n")}`
           : "";
         throw new Error(`API Error (${response.status}): ${data.error}${debugInfo}`);
       }
 
-      // Remove thinking message and add response
-      setHistory((prev) =>
-        prev.filter((m) => m.type !== "thinking").concat({
-          type: "output",
-          content: data.response,
-        })
-      );
+      // Check if it's a streaming response
+      const contentType = response.headers.get("content-type");
+      if (contentType?.includes("text/event-stream")) {
+        // Parse SSE response
+        const text = await response.text();
+        const lines = text.split("\n");
+
+        for (const line of lines) {
+          if (signal.aborted) break;
+
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.error) {
+                throw new Error(data.error);
+              }
+
+              if (data.text) {
+                fullResponse += data.text;
+                // Update the last message with accumulated text
+                setHistory((prev) => {
+                  const newHistory = [...prev];
+                  newHistory[newHistory.length - 1] = {
+                    type: "output",
+                    content: fullResponse,
+                  };
+                  return newHistory;
+                });
+              }
+
+              if (data.done) {
+                break;
+              }
+            } catch (parseError) {
+              // Skip invalid JSON lines
+            }
+          }
+        }
+      } else {
+        // Non-streaming fallback
+        const data = await response.json();
+        fullResponse = data.response;
+        setHistory((prev) => {
+          const newHistory = [...prev];
+          newHistory[newHistory.length - 1] = {
+            type: "output",
+            content: fullResponse,
+          };
+          return newHistory;
+        });
+      }
 
       setChatHistory([
         ...newChatHistory,
-        { role: "assistant", content: data.response },
+        { role: "assistant", content: fullResponse },
       ]);
     } catch (error) {
       // Revert chatHistory on error (Bug fix: orphaned user messages)
@@ -196,20 +243,37 @@ Ask me about his work, projects, interests, or anything else!`
 
       // Check if this was an abort
       if (error instanceof Error && error.name === "AbortError") {
-        setHistory((prev) =>
-          prev.filter((m) => m.type !== "thinking").concat({
-            type: "system",
-            content: "Request cancelled.",
-          })
-        );
+        // Keep partial response if any, add cancellation note
+        setHistory((prev) => {
+          const newHistory = [...prev];
+          const lastMsg = newHistory[newHistory.length - 1];
+          if (lastMsg && lastMsg.type === "output") {
+            if (lastMsg.content) {
+              // Keep partial response, add note
+              newHistory[newHistory.length - 1] = {
+                type: "output",
+                content: lastMsg.content + "\n\n[cancelled]",
+              };
+            } else {
+              // No content yet, show cancelled message
+              newHistory[newHistory.length - 1] = {
+                type: "system",
+                content: "Request cancelled.",
+              };
+            }
+          }
+          return newHistory;
+        });
       } else {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        setHistory((prev) =>
-          prev.filter((m) => m.type !== "thinking").concat({
+        setHistory((prev) => {
+          const newHistory = [...prev];
+          newHistory[newHistory.length - 1] = {
             type: "output",
             content: `Error: ${errorMessage}`,
-          })
-        );
+          };
+          return newHistory;
+        });
       }
     } finally {
       setIsLoading(false);
@@ -310,22 +374,30 @@ Ask me about his work, projects, interests, or anything else!`
 
       {/* Terminal content */}
       <div ref={terminalRef} className="flex-1 overflow-y-auto p-4 space-y-1">
-        {history.map((msg, i) => (
-          <div
-            key={i}
-            className={`whitespace-pre-wrap ${
-              msg.type === "input"
-                ? "text-white"
-                : msg.type === "system"
-                  ? "text-cyan-400"
-                  : msg.type === "thinking"
-                    ? "text-yellow-400 animate-pulse"
-                    : "text-green-400"
-            }`}
-          >
-            {msg.content}
-          </div>
-        ))}
+        {history.map((msg, i) => {
+          const isLastMessage = i === history.length - 1;
+          const isStreamingMessage = isLastMessage && isLoading && msg.type === "output";
+
+          return (
+            <div
+              key={i}
+              className={`whitespace-pre-wrap ${
+                msg.type === "input"
+                  ? "text-white"
+                  : msg.type === "system"
+                    ? "text-cyan-400"
+                    : msg.type === "thinking"
+                      ? "text-yellow-400 animate-pulse"
+                      : "text-green-400"
+              }`}
+            >
+              {msg.content || (isStreamingMessage ? "" : msg.content)}
+              {isStreamingMessage && (
+                <span className="animate-pulse text-green-300">▌</span>
+              )}
+            </div>
+          );
+        })}
 
         {/* Input line */}
         <div className="flex items-center">

@@ -1,4 +1,4 @@
-import type { Handler } from "@netlify/functions";
+import type { Handler, HandlerResponse } from "@netlify/functions";
 
 // Modal endpoint for the tom agent
 const MODAL_ENDPOINT = "https://heyo--tom-agent-chat.modal.run";
@@ -12,7 +12,7 @@ const handler: Handler = async (event) => {
   }
 
   try {
-    const { messages } = JSON.parse(event.body || "{}");
+    const { messages, stream = true } = JSON.parse(event.body || "{}");
 
     if (!messages || !Array.isArray(messages)) {
       return {
@@ -30,7 +30,7 @@ const handler: Handler = async (event) => {
       };
     }
 
-    console.log("[DEBUG] Proxying request to Modal with", messages.length, "messages");
+    console.log("[DEBUG] Proxying request to Modal with", messages.length, "messages, stream:", stream);
 
     // Proxy to Modal endpoint
     const response = await fetch(MODAL_ENDPOINT, {
@@ -38,7 +38,7 @@ const handler: Handler = async (event) => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages, stream }),
     });
 
     console.log("[DEBUG] Modal response status:", response.status);
@@ -61,6 +61,22 @@ const handler: Handler = async (event) => {
       };
     }
 
+    // For streaming responses, pass through the SSE stream
+    if (stream && response.headers.get("content-type")?.includes("text/event-stream")) {
+      const body = await response.text();
+
+      return {
+        statusCode: 200,
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          "Connection": "keep-alive",
+        },
+        body,
+      } as HandlerResponse;
+    }
+
+    // Non-streaming response
     const data = await response.json();
 
     // Check for error response from Modal
@@ -73,7 +89,6 @@ const handler: Handler = async (event) => {
         },
         body: JSON.stringify({
           error: data.error,
-          debug: data.debug,
         }),
       };
     }
