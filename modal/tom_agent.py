@@ -1,15 +1,12 @@
 """
-Modal function for Tom's AI agent using Claude Agent SDK with streaming.
+Modal function for Tom's AI agent using Anthropic SDK with streaming.
 
 Deploy with: modal deploy modal/tom_agent.py
 """
 
 import modal
-import os
-from fastapi import Request
-from fastapi.responses import StreamingResponse
 
-# Build image with Claude Agent SDK
+# Build image with Anthropic SDK
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .pip_install("anthropic", "fastapi[standard]")
@@ -53,15 +50,18 @@ When answering:
 @app.function(
     secrets=[modal.Secret.from_name("anthropic-api-key")],
     timeout=300,
+    image=image,
 )
 @modal.fastapi_endpoint(method="POST")
-async def chat(request: Request):
+async def chat(request):
     """
     Streaming chat endpoint using Anthropic SDK.
     Returns Server-Sent Events for real-time streaming.
     """
-    import anthropic
+    import os
     import json
+    import anthropic
+    from fastapi.responses import StreamingResponse
 
     body = await request.json()
     messages = body.get("messages", [])
@@ -131,7 +131,7 @@ async def chat(request: Request):
 
 
 # Health check endpoint
-@app.function()
+@app.function(image=image)
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "service": "tom-agent"}
