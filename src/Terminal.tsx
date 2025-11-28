@@ -378,10 +378,26 @@ Ask me about his work, projects, interests, or anything else!`
           const isLastMessage = i === history.length - 1;
           const isStreamingMessage = isLastMessage && isLoading && msg.type === "output";
 
+          // Get indicator based on message type
+          const getIndicator = () => {
+            switch (msg.type) {
+              case "input":
+                return null; // Input already has $ or tom> prompt
+              case "system":
+                return <span className="text-cyan-400 mr-2">●</span>;
+              case "output":
+                return <span className="text-green-400 mr-2">●</span>;
+              case "thinking":
+                return <span className="text-yellow-400 mr-2 animate-pulse">○</span>;
+              default:
+                return null;
+            }
+          };
+
           return (
             <div
               key={i}
-              className={`whitespace-pre-wrap ${
+              className={`whitespace-pre-wrap flex ${
                 msg.type === "input"
                   ? "text-white"
                   : msg.type === "system"
@@ -391,10 +407,13 @@ Ask me about his work, projects, interests, or anything else!`
                       : "text-green-400"
               }`}
             >
-              {msg.content || (isStreamingMessage ? "" : msg.content)}
-              {isStreamingMessage && (
-                <span className="animate-pulse text-green-300">▌</span>
-              )}
+              {getIndicator()}
+              <span className="flex-1">
+                {msg.content || (isStreamingMessage ? "" : msg.content)}
+                {isStreamingMessage && (
+                  <span className="animate-pulse text-green-300">▌</span>
+                )}
+              </span>
             </div>
           );
         })}
