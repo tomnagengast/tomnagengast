@@ -6,8 +6,14 @@ Deploy with: modal deploy modal/tom_agent.py
 
 import modal
 
+# Create image with non-root user (SDK won't run bypass mode as root)
 image = (
     modal.Image.debian_slim(python_version="3.11")
+    .apt_install("sudo")
+    .run_commands(
+        "useradd -m -s /bin/bash agent",
+        "echo 'agent ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers",
+    )
     .pip_install("claude-agent-sdk", "fastapi[standard]")
 )
 
@@ -39,12 +45,8 @@ Speak in first person as Tom. If you don't know something specific, say so hones
 async def chat(body: dict):
     """Chat endpoint using Claude Agent SDK with streaming."""
     import json
-    from claude_agent_sdk import (
-        AssistantMessage,
-        ClaudeAgentOptions,
-        TextBlock,
-        query,
-    )
+    import subprocess
+    import os
     from fastapi.responses import StreamingResponse
 
     messages = body.get("messages", [])
@@ -66,36 +68,60 @@ async def chat(body: dict):
     else:
         prompt = latest["content"]
 
+    # Write a Python script to run as non-root user
+    script = f'''
+import asyncio
+import json
+from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
+
+async def main():
+    options = ClaudeAgentOptions(
+        system_prompt="""{SYSTEM_PROMPT}""",
+        permission_mode="bypassPermissions",
+    )
+
+    prompt = """{prompt.replace('"', '\\"')}"""
+
+    async for message in query(prompt=prompt, options=options):
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, TextBlock):
+                    print(json.dumps({{"text": block.text}}), flush=True)
+    print(json.dumps({{"done": True}}), flush=True)
+
+asyncio.run(main())
+'''
+
     async def generate():
-        options = ClaudeAgentOptions(
-            system_prompt=SYSTEM_PROMPT,
-            permission_mode="bypassPermissions",
-        )
-
         try:
-            async for message in query(prompt=prompt, options=options):
-                print(f"[DEBUG] Received message type: {type(message).__name__}")
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        print(f"[DEBUG] Block type: {type(block).__name__}")
-                        if isinstance(block, TextBlock):
-                            print(f"[DEBUG] Text: {block.text[:50]}...")
-                            yield f"data: {json.dumps({'text': block.text})}\n\n"
-        except Exception as e:
-            print(f"[DEBUG] Error: {e}")
-            import traceback
-            traceback.print_exc()
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            # Run as non-root user
+            process = subprocess.Popen(
+                ["sudo", "-u", "agent", "python3", "-c", script],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                env={**os.environ, "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", "")},
+                bufsize=1,
+            )
 
-        yield f"data: {json.dumps({'done': True})}\n\n"
+            for line in iter(process.stdout.readline, ''):
+                if line.strip():
+                    yield f"data: {line.strip()}\n\n"
+
+            process.wait()
+            if process.returncode != 0:
+                stderr = process.stderr.read()
+                print(f"[ERROR] {stderr}")
+                yield f"data: {json.dumps({'error': stderr[:500]})}\n\n"
+
+        except Exception as e:
+            print(f"[ERROR] {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-        }
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
     )
 
 
@@ -113,27 +139,44 @@ def health():
 @modal.fastapi_endpoint(method="GET")
 async def test():
     """Simple test endpoint to verify SDK works."""
-    from claude_agent_sdk import (
-        AssistantMessage,
-        ClaudeAgentOptions,
-        TextBlock,
-        query,
-    )
+    import subprocess
+    import os
 
+    script = '''
+import asyncio
+import json
+from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
+
+async def main():
     options = ClaudeAgentOptions(
         system_prompt="You are helpful. Be brief.",
         permission_mode="bypassPermissions",
     )
 
     result = []
+    async for message in query(prompt="Say hello in 5 words or less", options=options):
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if isinstance(block, TextBlock):
+                    result.append(block.text)
+    print(json.dumps({"success": True, "response": "".join(result)}))
+
+asyncio.run(main())
+'''
+
     try:
-        async for message in query(prompt="Say hello in 5 words or less", options=options):
-            print(f"[TEST] Message type: {type(message).__name__}")
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        result.append(block.text)
-        return {"success": True, "response": "".join(result)}
+        result = subprocess.run(
+            ["sudo", "-u", "agent", "python3", "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env={**os.environ, "ANTHROPIC_API_KEY": os.environ.get("ANTHROPIC_API_KEY", "")},
+        )
+
+        if result.returncode == 0:
+            import json
+            return json.loads(result.stdout.strip())
+        else:
+            return {"success": False, "error": result.stderr}
     except Exception as e:
-        import traceback
-        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+        return {"success": False, "error": str(e)}
