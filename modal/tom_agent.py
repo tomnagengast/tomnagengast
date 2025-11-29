@@ -68,6 +68,9 @@ async def chat(body: dict):
     else:
         prompt = latest["content"]
 
+    # Escape the prompt for embedding in Python script
+    escaped_prompt = prompt.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
     # Write a Python script to run as non-root user
     script = f'''
 import asyncio
@@ -80,7 +83,7 @@ async def main():
         permission_mode="bypassPermissions",
     )
 
-    prompt = """{prompt.replace('"', '\\"')}"""
+    prompt = "{escaped_prompt}"
 
     async for message in query(prompt=prompt, options=options):
         if isinstance(message, AssistantMessage):
