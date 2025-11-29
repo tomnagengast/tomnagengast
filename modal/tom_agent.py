@@ -103,3 +103,37 @@ async def chat(body: dict):
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok"}
+
+
+@app.function(
+    secrets=[modal.Secret.from_name("anthropic-api-key")],
+    timeout=300,
+    image=image,
+)
+@modal.fastapi_endpoint(method="GET")
+async def test():
+    """Simple test endpoint to verify SDK works."""
+    from claude_agent_sdk import (
+        AssistantMessage,
+        ClaudeAgentOptions,
+        TextBlock,
+        query,
+    )
+
+    options = ClaudeAgentOptions(
+        system_prompt="You are helpful. Be brief.",
+        permission_mode="bypassPermissions",
+    )
+
+    result = []
+    try:
+        async for message in query(prompt="Say hello in 5 words or less", options=options):
+            print(f"[TEST] Message type: {type(message).__name__}")
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        result.append(block.text)
+        return {"success": True, "response": "".join(result)}
+    except Exception as e:
+        import traceback
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
