@@ -36,10 +36,15 @@ Speak in first person as Tom. If you don't know something specific, say so hones
     image=image,
 )
 @modal.fastapi_endpoint(method="POST")
-def chat(body: dict):
+async def chat(body: dict):
     """Chat endpoint using Claude Agent SDK with streaming."""
-    import asyncio
     import json
+    from claude_agent_sdk import (
+        AssistantMessage,
+        ClaudeAgentOptions,
+        TextBlock,
+        query,
+    )
     from fastapi.responses import StreamingResponse
 
     messages = body.get("messages", [])
@@ -61,41 +66,28 @@ def chat(body: dict):
     else:
         prompt = latest["content"]
 
-    def generate():
-        import anyio
-        from claude_agent_sdk import (
-            AssistantMessage,
-            ClaudeAgentOptions,
-            TextBlock,
-            query,
+    async def generate():
+        options = ClaudeAgentOptions(
+            system_prompt=SYSTEM_PROMPT,
+            permission_mode="bypassPermissions",
         )
 
-        async def stream():
-            options = ClaudeAgentOptions(
-                system_prompt=SYSTEM_PROMPT,
-                permission_mode="bypassPermissions",
-            )
+        try:
+            async for message in query(prompt=prompt, options=options):
+                print(f"[DEBUG] Received message type: {type(message).__name__}")
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        print(f"[DEBUG] Block type: {type(block).__name__}")
+                        if isinstance(block, TextBlock):
+                            print(f"[DEBUG] Text: {block.text[:50]}...")
+                            yield f"data: {json.dumps({'text': block.text})}\n\n"
+        except Exception as e:
+            print(f"[DEBUG] Error: {e}")
+            import traceback
+            traceback.print_exc()
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
 
-            try:
-                async for message in query(prompt=prompt, options=options):
-                    if isinstance(message, AssistantMessage):
-                        for block in message.content:
-                            if isinstance(block, TextBlock):
-                                yield f"data: {json.dumps({'text': block.text})}\n\n"
-            except Exception as e:
-                yield f"data: {json.dumps({'error': str(e)})}\n\n"
-
-            yield f"data: {json.dumps({'done': True})}\n\n"
-
-        # Run async generator synchronously
-        async def collect():
-            results = []
-            async for item in stream():
-                results.append(item)
-            return results
-
-        for item in anyio.from_thread.run(collect):
-            yield item
+        yield f"data: {json.dumps({'done': True})}\n\n"
 
     return StreamingResponse(
         generate(),
