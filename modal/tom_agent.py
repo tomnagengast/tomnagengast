@@ -94,6 +94,9 @@ def handle_tom_chat(message: str, history: list):
     import json
     from fastapi.responses import StreamingResponse
 
+    # Escape message for embedding in Python script
+    escaped_message = message.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
     # Install SDK if needed and run query
     script = f'''
 import asyncio
@@ -112,7 +115,7 @@ async def main():
         system_prompt=SYSTEM_PROMPT,
         permission_mode="bypassPermissions",
     )
-    async for msg in query(prompt="{message.replace('"', '\\"')}", options=options):
+    async for msg in query(prompt="{escaped_message}", options=options):
         if isinstance(msg, AssistantMessage):
             for block in msg.content:
                 if isinstance(block, TextBlock):
