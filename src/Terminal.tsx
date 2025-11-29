@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 interface TerminalProps {
   isOpen: boolean;
@@ -9,8 +9,120 @@ export default function Terminal({ isOpen, onClose }: TerminalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const terminalRef = useRef<any>(null);
   const fitAddonRef = useRef<any>(null);
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lineBufferRef = useRef<string>("");
+
+  const writePrompt = useCallback((term: any) => {
+    term.write("\x1b[32mtom@sandbox\x1b[0m:\x1b[34m~\x1b[0m$ ");
+  }, []);
+
+  const executeCommand = useCallback(async (command: string, term: any) => {
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
+    try {
+      const response = await fetch("/.netlify/functions/shell", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ command }),
+        signal,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        term.write(`\x1b[31mError: ${data.error || "Command failed"}\x1b[0m\r\n`);
+        return;
+      }
+
+      const contentType = response.headers.get("content-type");
+
+      if (contentType?.includes("text/event-stream")) {
+        const text = await response.text();
+        const lines = text.split("\n");
+
+        for (const line of lines) {
+          if (signal.aborted) break;
+
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+
+              if (data.error) {
+                term.write(`\x1b[31m${data.error}\x1b[0m\r\n`);
+              } else if (data.output) {
+                const output = data.output.replace(/\n/g, "\r\n");
+                term.write(output);
+              }
+            } catch {
+              // Skip invalid JSON
+            }
+          }
+        }
+      } else {
+        const data = await response.json();
+        if (data.output) {
+          const output = data.output.replace(/\n/g, "\r\n");
+          term.write(output);
+          if (!output.endsWith("\n")) {
+            term.write("\r\n");
+          }
+        }
+        if (data.error) {
+          term.write(`\x1b[31m${data.error}\x1b[0m\r\n`);
+        }
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        term.write("\r\n");
+      } else {
+        const message = error instanceof Error ? error.message : String(error);
+        term.write(`\x1b[31mError: ${message}\x1b[0m\r\n`);
+      }
+    } finally {
+      abortControllerRef.current = null;
+    }
+  }, []);
+
+  // Handle input from hidden input (mobile keyboard)
+  const handleInput = useCallback((char: string) => {
+    const term = terminalRef.current;
+    if (!term) return;
+
+    if (char === "Enter") {
+      term.write("\r\n");
+      const command = lineBufferRef.current.trim();
+      if (command) {
+        if (command === "exit") {
+          onClose();
+          return;
+        }
+        executeCommand(command, term).then(() => {
+          writePrompt(term);
+        });
+      } else {
+        writePrompt(term);
+      }
+      lineBufferRef.current = "";
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.value = "";
+      }
+    } else if (char === "Backspace") {
+      if (lineBufferRef.current.length > 0) {
+        lineBufferRef.current = lineBufferRef.current.slice(0, -1);
+        term.write("\b \b");
+        if (hiddenInputRef.current) {
+          hiddenInputRef.current.value = lineBufferRef.current;
+        }
+      }
+    } else if (char === "Escape") {
+      onClose();
+    } else if (char.length === 1 && char >= " ") {
+      lineBufferRef.current += char;
+      term.write(char);
+    }
+  }, [onClose, executeCommand, writePrompt]);
 
   // Initialize ghostty-web terminal
   useEffect(() => {
@@ -46,45 +158,27 @@ export default function Terminal({ isOpen, onClose }: TerminalProps) {
         await executeCommand("welcome", term);
         writePrompt(term);
 
-        // Handle user input
-        let lineBuffer = "";
+        // Handle desktop keyboard input via terminal
         term.onData((data: string) => {
           if (data === "\r" || data === "\n") {
-            // Enter pressed - execute command
-            term.write("\r\n");
-            if (lineBuffer.trim()) {
-              if (lineBuffer.trim() === "exit") {
-                onClose();
-                return;
-              }
-              executeCommand(lineBuffer.trim(), term).then(() => {
-                writePrompt(term);
-              });
-            } else {
-              writePrompt(term);
-            }
-            lineBuffer = "";
+            handleInput("Enter");
           } else if (data === "\x7f" || data === "\b") {
-            // Backspace
-            if (lineBuffer.length > 0) {
-              lineBuffer = lineBuffer.slice(0, -1);
-              term.write("\b \b");
-            }
+            handleInput("Backspace");
           } else if (data === "\x03") {
             // Ctrl+C
             if (abortControllerRef.current) {
               abortControllerRef.current.abort();
             }
             term.write("^C\r\n");
-            lineBuffer = "";
+            lineBufferRef.current = "";
+            if (hiddenInputRef.current) {
+              hiddenInputRef.current.value = "";
+            }
             writePrompt(term);
           } else if (data === "\x1b") {
-            // Escape
-            onClose();
+            handleInput("Escape");
           } else if (data >= " " || data === "\t") {
-            // Printable characters
-            lineBuffer += data;
-            term.write(data);
+            handleInput(data);
           }
         });
 
@@ -96,6 +190,11 @@ export default function Terminal({ isOpen, onClose }: TerminalProps) {
         };
         window.addEventListener("resize", handleResize);
 
+        // Focus hidden input for mobile
+        setTimeout(() => {
+          hiddenInputRef.current?.focus();
+        }, 100);
+
         return () => {
           window.removeEventListener("resize", handleResize);
         };
@@ -105,7 +204,7 @@ export default function Terminal({ isOpen, onClose }: TerminalProps) {
     };
 
     initTerminal();
-  }, [isOpen, isInitialized, onClose]);
+  }, [isOpen, isInitialized, onClose, executeCommand, writePrompt, handleInput]);
 
   // Cleanup on close
   useEffect(() => {
@@ -114,87 +213,50 @@ export default function Terminal({ isOpen, onClose }: TerminalProps) {
       terminalRef.current = null;
       fitAddonRef.current = null;
       setIsInitialized(false);
+      lineBufferRef.current = "";
     }
   }, [isOpen]);
 
-  const writePrompt = (term: any) => {
-    term.write("\x1b[32mtom@sandbox\x1b[0m:\x1b[34m~\x1b[0m$ ");
-  };
-
-  const executeCommand = async (command: string, term: any) => {
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
-    try {
-      const response = await fetch("/.netlify/functions/shell", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command }),
-        signal,
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        term.write(`\x1b[31mError: ${data.error || "Command failed"}\x1b[0m\r\n`);
-        return;
-      }
-
-      const contentType = response.headers.get("content-type");
-
-      if (contentType?.includes("text/event-stream")) {
-        // Handle SSE streaming
-        const text = await response.text();
-        const lines = text.split("\n");
-
-        for (const line of lines) {
-          if (signal.aborted) break;
-
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6));
-
-              if (data.error) {
-                term.write(`\x1b[31m${data.error}\x1b[0m\r\n`);
-              } else if (data.output) {
-                // Write output, converting \n to \r\n for terminal
-                const output = data.output.replace(/\n/g, "\r\n");
-                term.write(output);
-              }
-            } catch {
-              // Skip invalid JSON
-            }
-          }
-        }
-      } else {
-        // Handle JSON response
-        const data = await response.json();
-        if (data.output) {
-          const output = data.output.replace(/\n/g, "\r\n");
-          term.write(output);
-          if (!output.endsWith("\n")) {
-            term.write("\r\n");
-          }
-        }
-        if (data.error) {
-          term.write(`\x1b[31m${data.error}\x1b[0m\r\n`);
-        }
-      }
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        term.write("\r\n");
-      } else {
-        const message = error instanceof Error ? error.message : String(error);
-        term.write(`\x1b[31mError: ${message}\x1b[0m\r\n`);
-      }
-    } finally {
-      abortControllerRef.current = null;
-    }
+  // Focus input when tapping terminal
+  const focusInput = () => {
+    hiddenInputRef.current?.focus();
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black z-50 flex flex-col">
+      {/* Hidden input for mobile keyboard */}
+      <input
+        ref={hiddenInputRef}
+        type="text"
+        autoCapitalize="off"
+        autoCorrect="off"
+        autoComplete="off"
+        spellCheck={false}
+        className="absolute opacity-0 w-0 h-0"
+        style={{ top: "-9999px", left: "-9999px" }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === "Backspace" || e.key === "Escape") {
+            e.preventDefault();
+            handleInput(e.key);
+          }
+        }}
+        onInput={(e) => {
+          const input = e.currentTarget;
+          const newValue = input.value;
+          const oldValue = lineBufferRef.current;
+
+          // Find what was added
+          if (newValue.length > oldValue.length) {
+            const added = newValue.slice(oldValue.length);
+            for (const char of added) {
+              handleInput(char);
+            }
+          }
+        }}
+      />
+
       {/* Terminal header */}
       <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-700">
         <div className="flex items-center gap-2">
@@ -214,11 +276,12 @@ export default function Terminal({ isOpen, onClose }: TerminalProps) {
         <span className="text-gray-500 text-xs">ESC to close</span>
       </div>
 
-      {/* Terminal container */}
+      {/* Terminal container - tap to focus */}
       <div
         ref={containerRef}
         className="flex-1 bg-black"
         style={{ padding: "8px" }}
+        onClick={focusInput}
       />
 
       {/* Mobile toolbar */}
@@ -234,10 +297,25 @@ export default function Terminal({ isOpen, onClose }: TerminalProps) {
             if (abortControllerRef.current) {
               abortControllerRef.current.abort();
             }
+            const term = terminalRef.current;
+            if (term) {
+              term.write("^C\r\n");
+              lineBufferRef.current = "";
+              if (hiddenInputRef.current) {
+                hiddenInputRef.current.value = "";
+              }
+              writePrompt(term);
+            }
           }}
           className="px-3 py-1.5 text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 rounded border border-gray-600"
         >
           ^C
+        </button>
+        <button
+          onClick={focusInput}
+          className="px-3 py-1.5 text-xs font-medium bg-blue-700 hover:bg-blue-600 text-white rounded border border-blue-600"
+        >
+          keyboard
         </button>
         <span className="flex-1" />
         <span className="text-gray-500 text-xs font-mono">sandbox</span>
