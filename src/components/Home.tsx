@@ -59,7 +59,6 @@ function Home() {
           <Markdown>
             {`Previously piping data with the fine folks at
             [Replit](https://blog.replit.com/how-replit-makes-sense-of-code-at-scale-ai-data/),
-            Replicated,
             [Netlify](https://www.netlify.com/blog/2021/04/08/how-the-netlify-data-team-uses-census-for-operational-analytics/)
             and Mindbody.
             `}
