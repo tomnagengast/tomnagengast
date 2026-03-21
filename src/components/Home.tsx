@@ -54,7 +54,7 @@ function Home() {
 
         <div className="text-xl my-8 space-y-4">
           <Markdown>
-            {`Currently [slingin' bits](https://cable.tech/) and [stompin' grapes](https://bajkawine.com/).`}
+            {`Currently [slingin' bits](https://www.sazabi.com) and [stompin' grapes](https://bajkawine.com/).`}
           </Markdown>
           <Markdown>
             {`Previously piping data with the fine folks at
