@@ -15,8 +15,8 @@ export const notes: Note[] = [
     date: "2026-05-19",
     published: true,
     standalone: true,
-    description: "Standalone reference cheatsheet for QRDSPI.",
-    content: `Standalone reference cheatsheet for QRDSPI.`,
+    description: "Standalone reference for QRDSPI model selection.",
+    content: `Standalone reference for QRDSPI model selection.`,
   },
   {
     slug: "example-note",
