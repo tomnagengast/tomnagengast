@@ -1,10 +1,17 @@
-import { notes } from "../src/data/notes";
+import { publishedNotes } from "../src/data/notes";
 import { writeFileSync } from "fs";
 import { join } from "path";
 
 const SITE_URL = "https://tomnagengast.com";
 const SITE_TITLE = "Tom Nagengast";
 const SITE_DESCRIPTION = "Essays and ideas from Tom Nagengast";
+
+interface FeedEntry {
+  title: string;
+  url: string;
+  date: string;
+  description: string;
+}
 
 function escapeXml(unsafe: string): string {
   return unsafe
@@ -21,30 +28,36 @@ function stripMarkdown(markdown: string): string {
     .replace(/^#+\s+/gm, "") // Remove headers
     .replace(/\*\*([^*]+)\*\*/g, "$1") // Remove bold
     .replace(/\*([^*]+)\*/g, "$1") // Remove italic
-    .replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1") // Remove links, keep text
-    .replace(/!\[([^\]]*)\]\([^\)]+\)/g, "") // Remove images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links, keep text
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "") // Remove images
     .replace(/`([^`]+)`/g, "$1") // Remove inline code
     .replace(/^[-*+]\s+/gm, "") // Remove list markers
     .trim();
 }
 
 function generateRSS(): string {
-  const sortedNotes = [...notes].sort((a, b) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
+  const noteEntries: FeedEntry[] = publishedNotes.map((note) => ({
+    title: note.title,
+    url: `${SITE_URL}/notes/${note.slug}`,
+    date: note.date,
+    description:
+      note.description ?? stripMarkdown(note.content).slice(0, 200) + "...",
+  }));
+
+  const sortedEntries = noteEntries.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
-  const items = sortedNotes
-    .map((note) => {
-      const url = `${SITE_URL}/notes/${note.slug}`;
-      const description = stripMarkdown(note.content).slice(0, 200) + "...";
-      const pubDate = new Date(note.date).toUTCString();
+  const items = sortedEntries
+    .map((entry) => {
+      const pubDate = new Date(entry.date).toUTCString();
 
       return `    <item>
-      <title>${escapeXml(note.title)}</title>
-      <link>${url}</link>
-      <guid>${url}</guid>
+      <title>${escapeXml(entry.title)}</title>
+      <link>${entry.url}</link>
+      <guid>${entry.url}</guid>
       <pubDate>${pubDate}</pubDate>
-      <description>${escapeXml(description)}</description>
+      <description>${escapeXml(entry.description)}</description>
     </item>`;
     })
     .join("\n");

@@ -2,14 +2,27 @@ export interface Note {
   slug: string;
   title: string;
   date: string;
+  published: boolean;
+  standalone?: boolean;
+  description?: string;
   content: string;
 }
 
 export const notes: Note[] = [
   {
+    slug: "qrspi",
+    title: "QRDSPI & the art of routing",
+    date: "2026-05-19",
+    published: true,
+    standalone: true,
+    description: "Standalone reference cheatsheet for QRDSPI.",
+    content: `Standalone reference cheatsheet for QRDSPI.`,
+  },
+  {
     slug: "example-note",
     title: "Example Note",
     date: "2025-01-15",
+    published: false,
     content: `# Example Note
 
 This is an example note. You can write your essays and ideas here using Markdown.
@@ -33,3 +46,7 @@ To add new notes, edit the \`src/data/notes.ts\` file and add new entries to the
 `,
   },
 ];
+
+export const publishedNotes = notes.filter((note) => note.published);
+
+export const markdownNotes = publishedNotes.filter((note) => !note.standalone);

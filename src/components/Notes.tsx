@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { notes } from "../data/notes";
+import { publishedNotes } from "../data/notes";
 
 function Notes() {
   return (
@@ -36,30 +36,44 @@ function Notes() {
         </div>
 
         <div className="space-y-6">
-          {notes.length === 0 ? (
-            <p className="text-slate-600">No notes yet. Check back soon!</p>
-          ) : (
-            notes.map((note) => (
+          {publishedNotes.map((note) => {
+            const article = (
+              <article className="border-b border-slate-200 pb-6 hover:border-slate-400 transition-colors">
+                <h2 className="text-2xl font-semibold text-slate-900 group-hover:text-slate-600 transition-colors">
+                  {note.title}
+                </h2>
+                <time className="text-sm text-slate-500 mt-2 block">
+                  {new Date(note.date).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </time>
+              </article>
+            );
+
+            if (note.standalone) {
+              return (
+                <a
+                  key={note.slug}
+                  href={`/notes/${note.slug}`}
+                  className="block group"
+                >
+                  {article}
+                </a>
+              );
+            }
+
+            return (
               <Link
                 key={note.slug}
                 to={`/notes/${note.slug}`}
                 className="block group"
               >
-                <article className="border-b border-slate-200 pb-6 hover:border-slate-400 transition-colors">
-                  <h2 className="text-2xl font-semibold text-slate-900 group-hover:text-slate-600 transition-colors">
-                    {note.title}
-                  </h2>
-                  <time className="text-sm text-slate-500 mt-2 block">
-                    {new Date(note.date).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </time>
-                </article>
+                {article}
               </Link>
-            ))
-          )}
+            );
+          })}
         </div>
       </div>
     </div>

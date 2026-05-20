@@ -3,6 +3,16 @@
   command = "npm run build"
 
 [[redirects]]
+  from = "/notes/qrspi"
+  to = "/notes/qrspi/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/notes/qrspi/"
+  to = "/notes/qrspi/index.html"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

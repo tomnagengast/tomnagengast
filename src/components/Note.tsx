@@ -1,10 +1,10 @@
 import { useParams, Link, Navigate } from "react-router-dom";
 import Markdown from "react-markdown";
-import { notes } from "../data/notes";
+import { markdownNotes } from "../data/notes";
 
 function Note() {
   const { slug } = useParams<{ slug: string }>();
-  const note = notes.find((n) => n.slug === slug);
+  const note = markdownNotes.find((n) => n.slug === slug);
 
   if (!note) {
     return <Navigate to="/notes" replace />;

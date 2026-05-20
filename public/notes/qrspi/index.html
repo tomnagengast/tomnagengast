@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRDSPI · A Routing Cheatsheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Paper */
+    --paper: #ffffff;
+    --paper-warm: #f5f7fa;             /* soft slate wash for layered surfaces */
+    --paper-deep: #eef2f7;             /* slightly heavier wash for matrix headers */
+
+    /* Ink — single hue, opacity steps */
+    --ink: #0f172a;                    /* slate-900 — primary */
+    --ink-soft: #475569;               /* slate-600 — secondary */
+    --ink-muted: #94a3b8;              /* slate-400 — muted */
+    --ink-faint: rgba(15, 23, 42, 0.12);
+
+    /* Rules */
+    --rule: #0f172a;
+    --rule-soft: rgba(15, 23, 42, 0.14);
+
+    /* The one accent — blue, with opacity tiers for shading */
+    --accent: #1d4ed8;
+    --accent-deep: #1e3a8a;
+    --accent-soft: rgba(29, 78, 216, 0.10);   /* faintest wash */
+    --accent-mid: rgba(29, 78, 216, 0.55);    /* mid-weight blue */
+
+    --mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    --serif: 'Fraunces', Georgia, serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+    font-feature-settings: "ss01", "ss02", "cv11";
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.18;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E");
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 64px 56px 96px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ============ MASTHEAD ============ */
+  .masthead {
+    border-top: 6px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 24px 0 28px;
+    margin-bottom: 56px;
+    position: relative;
+  }
+
+  .masthead-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-soft);
+    margin-bottom: 24px;
+  }
+  .masthead-top .accent-dot {
+    color: var(--accent);
+    font-size: 14px;
+    line-height: 1;
+  }
+  .masthead-top a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule-soft);
+    padding-bottom: 1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .masthead-top a:hover {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  h1.title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144;
+  }
+  h1.title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  h1.title .amp {
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink-muted);
+  }
+  .subtitle {
+    margin-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 32px;
+  }
+  .subtitle-text {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 560px;
+    line-height: 1.4;
+  }
+  .flow-marker {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .flow-marker .step {
+    display: inline-block;
+    padding: 4px 8px;
+    background: var(--ink);
+    color: var(--paper);
+    margin: 0 1px;
+  }
+  .flow-marker .arrow {
+    color: var(--ink-muted);
+    margin: 0 3px;
+  }
+
+  /* ============ SECTIONS ============ */
+  section {
+    margin-bottom: 72px;
+    position: relative;
+  }
+
+  .section-head {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 24px;
+    align-items: baseline;
+    margin-bottom: 28px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+
+  .section-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .section-title em {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-weight: 300;
+  }
+
+  .section-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-muted);
+  }
+
+  /* ============ SIX STEPS ============ */
+  .steps-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .step {
+    padding: 24px 16px 20px;
+    border-right: 1px solid var(--rule-soft);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.25s ease;
+  }
+  .step:last-child { border-right: none; }
+  .step:hover { background: rgba(15, 23, 42, 0.025); }
+
+  .step-letter {
+    font-family: var(--mono);
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    margin-bottom: 16px;
+    position: relative;
+    display: inline-block;
+  }
+  .step-letter::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 24px;
+    height: 3px;
+    background: var(--accent);
+  }
+
+  .step-name {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-muted);
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+
+  .step-tagline {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    line-height: 1.3;
+    color: var(--ink);
+    margin-bottom: 16px;
+    letter-spacing: -0.005em;
+  }
+
+  .step-shape {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    padding-top: 12px;
+    margin-top: auto;
+    border-top: 1px dotted var(--rule-soft);
+    line-height: 1.5;
+  }
+  .step-shape .label {
+    color: var(--ink-muted);
+    display: block;
+    margin-bottom: 2px;
+    font-size: 9px;
+  }
+
+  /* ============ ROUTING MATRIX ============ */
+  .matrix-container {
+    background: var(--paper-warm);
+    border: 1px solid var(--rule);
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .matrix-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .matrix-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+  }
+  .matrix-label .sigil {
+    color: var(--accent);
+    margin-right: 8px;
+    font-weight: 700;
+  }
+  .matrix-context {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--paper-warm);
+    opacity: 0.85;
+  }
+
+  table.matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  table.matrix th {
+    text-align: left;
+    padding: 12px 18px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-muted);
+    border-bottom: 1px solid var(--rule);
+    font-weight: 600;
+    background: rgba(0,0,0,0.02);
+  }
+  table.matrix th.pref {
+    background: var(--ink);
+    color: var(--accent);
+    position: relative;
+  }
+  table.matrix th.pref::before {
+    content: '★';
+    margin-right: 6px;
+  }
+  table.matrix td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: middle;
+  }
+  table.matrix tr:last-child td { border-bottom: none; }
+
+  td.step-mark {
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 22px;
+    width: 56px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  td.step-mark .underline {
+    display: inline-block;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 1px;
+  }
+
+  td.cell {
+    color: var(--ink-soft);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  td.cell .model {
+    color: var(--ink);
+    font-weight: 600;
+  }
+  td.cell .line {
+    display: block;
+    line-height: 1.8;
+  }
+  td.cell .role {
+    color: var(--ink-muted);
+    font-style: italic;
+    font-family: var(--serif);
+    font-size: 12px;
+  }
+
+  td.pref-cell {
+    background: var(--paper);
+    border-left: 1px solid var(--accent);
+    color: var(--ink);
+  }
+  td.pref-cell .model {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  /* Effort pills */
+  .eff {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border: 1px solid currentColor;
+    border-radius: 1px;
+    vertical-align: middle;
+    line-height: 1.4;
+  }
+  /* Effort scale — ink opacity rises, blue marks "specialist" tiers */
+  .eff-low   { color: rgba(15, 23, 42, 0.40); }
+  .eff-med   { color: rgba(15, 23, 42, 0.62); }
+  .eff-high  { color: var(--ink); }
+  .eff-xhigh { color: var(--accent); }
+  .eff-max   { color: var(--paper); background: var(--accent); border-color: var(--accent); }
+  .eff-1m {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    border-style: solid;
+    border-width: 1.5px;
+    font-weight: 800;
+  }
+
+  /* ============ PER-STEP DETAILS ============ */
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    border-left: 1px solid var(--rule);
+  }
+  .detail {
+    padding: 28px 24px;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    position: relative;
+  }
+
+  .detail-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .detail-letter {
+    font-family: var(--mono);
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: -0.03em;
+  }
+  .detail-name {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .detail-name em {
+    display: block;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-muted);
+    margin-top: 4px;
+  }
+
+  .detail-goal {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-style: italic;
+    color: var(--ink);
+    margin-bottom: 16px;
+    line-height: 1.5;
+    padding-left: 14px;
+    border-left: 2px solid var(--accent);
+  }
+
+  .detail ul {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .detail ul li {
+    font-size: 13px;
+    line-height: 1.45;
+    padding-left: 18px;
+    position: relative;
+    margin-bottom: 6px;
+    color: var(--ink-soft);
+  }
+  .detail ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-weight: 700;
+  }
+
+  .detail-avoid {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 10px 12px;
+    background: rgba(15, 23, 42, 0.04);
+    border-left: 2px solid var(--ink);
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .detail-avoid .tag {
+    color: var(--ink-soft);
+    font-weight: 700;
+    display: block;
+    margin-bottom: 3px;
+    font-size: 9px;
+  }
+
+  /* ============ 1M CONTEXT GRID ============ */
+  .context-banner {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 28px 32px;
+    margin-bottom: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: center;
+    border: 1px solid var(--ink);
+  }
+  .context-banner .lead {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 26px;
+    line-height: 1.25;
+    letter-spacing: -0.015em;
+    color: var(--paper);
+  }
+  .context-banner .lead strong {
+    font-style: normal;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .context-banner .lead-sub {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--paper-warm);
+    opacity: 0.85;
+  }
+
+  .verdict-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    border: 1px solid var(--rule);
+    border-top: none;
+    background: var(--paper-warm);
+  }
+  .verdict {
+    padding: 24px 16px;
+    text-align: center;
+    border-right: 1px solid var(--rule-soft);
+    position: relative;
+  }
+  .verdict:last-child { border-right: none; }
+
+  .verdict-letter {
+    font-family: var(--mono);
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 12px;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+  }
+  .verdict-symbol {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .verdict-symbol.yes { color: var(--ink); }
+  .verdict-symbol.maybe { color: var(--ink-soft); font-style: italic; }
+  .verdict-symbol.no { color: var(--ink-muted); font-weight: 500; }
+
+  .verdict-note {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-soft);
+    line-height: 1.3;
+  }
+
+  .context-callouts {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--rule);
+    border-top: none;
+  }
+  .callout {
+    padding: 22px 24px;
+    border-right: 1px solid var(--rule-soft);
+  }
+  .callout:last-child { border-right: none; }
+  .callout h4 {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+  .callout-body {
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .callout-body code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--paper-warm);
+    padding: 2px 5px;
+    border: 1px solid var(--rule-soft);
+  }
+  .callout ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .callout ul li {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 4px 0 4px 16px;
+    position: relative;
+    color: var(--ink-soft);
+  }
+  .callout ul li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+
+  /* ============ TRIGGERS ============ */
+  .triggers-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--rule);
+    background: var(--paper-warm);
+  }
+  .triggers-table thead {
+    background: var(--ink);
+  }
+  .triggers-table th {
+    text-align: left;
+    padding: 14px 20px;
+    color: var(--paper);
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+  }
+  .triggers-table td {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--rule-soft);
+    font-size: 13px;
+  }
+  .triggers-table tr:last-child td { border-bottom: none; }
+  .triggers-table tr.note td {
+    background: rgba(15, 23, 42, 0.04);
+    font-style: italic;
+    font-family: var(--serif);
+    text-align: center;
+    color: var(--ink);
+    padding: 10px 20px;
+  }
+
+  td.step-tag {
+    width: 80px;
+    font-family: var(--mono);
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+  }
+  td.step-tag .marker {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    line-height: 22px;
+    text-align: center;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 2px;
+    font-size: 12px;
+  }
+  td.signal {
+    font-family: var(--serif);
+    color: var(--ink);
+  }
+  td.action {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: right;
+  }
+
+  /* ============ ADVERSARIAL MODES ============ */
+  .modes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--rule);
+  }
+  .mode {
+    padding: 32px 32px 28px;
+    position: relative;
+    background: var(--paper-warm);
+    display: flex;
+    flex-direction: column;
+  }
+  .mode:first-child {
+    border-right: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .mode-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+  .mode-name {
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .mode-name em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .mode-kind {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 18px;
+    font-weight: 600;
+  }
+  .mode-desc {
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin-bottom: 20px;
+    font-style: italic;
+  }
+  .mode-config {
+    border-top: 1px solid var(--rule-soft);
+    padding-top: 16px;
+    margin-top: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+  .mode-config-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+  .mode-config-row .label {
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+  .mode-config-row .value {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  /* ============ PRINCIPLES ============ */
+  .principles-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .principle {
+    padding: 24px 22px;
+    background: var(--paper);
+  }
+  .principle-num {
+    font-family: var(--mono);
+    font-size: 36px;
+    font-weight: 300;
+    line-height: 1;
+    color: var(--accent);
+    margin-bottom: 12px;
+    letter-spacing: -0.04em;
+  }
+  .principle-text {
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .principle-text strong {
+    font-weight: 600;
+    letter-spacing: -0.005em;
+  }
+
+  /* ============ DONTS ============ */
+  .donts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--rule);
+  }
+  .dont-col {
+    padding: 26px 24px;
+    border-right: 1px solid var(--rule);
+  }
+  .dont-col:last-child { border-right: none; }
+  .dont-col h4 {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 16px;
+    font-weight: 700;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .dont-col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .dont-col li {
+    font-family: var(--serif);
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 12px;
+    padding-left: 20px;
+    position: relative;
+    color: var(--ink);
+  }
+  .dont-col li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    top: -2px;
+    color: var(--ink-muted);
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .dont-col code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--paper-warm);
+    padding: 1px 4px;
+    border: 1px solid var(--rule-soft);
+  }
+
+  /* ============ COLOPHON ============ */
+  .colophon {
+    margin-top: 64px;
+    padding-top: 28px;
+    border-top: 4px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-muted);
+  }
+  .colophon .dot {
+    color: var(--accent);
+    margin: 0 8px;
+  }
+  .colophon .legend {
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    font-size: 10px;
+    color: var(--ink-muted);
+  }
+  .colophon .legend b {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  /* Animations */
+  @keyframes slidein {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  section { animation: slidein 0.6s ease-out backwards; }
+  section:nth-child(2) { animation-delay: 0.05s; }
+  section:nth-child(3) { animation-delay: 0.1s; }
+  section:nth-child(4) { animation-delay: 0.15s; }
+  section:nth-child(5) { animation-delay: 0.2s; }
+  section:nth-child(6) { animation-delay: 0.25s; }
+  section:nth-child(7) { animation-delay: 0.3s; }
+  section:nth-child(8) { animation-delay: 0.35s; }
+  section:nth-child(9) { animation-delay: 0.4s; }
+
+  /* Responsive */
+  @media (max-width: 1000px) {
+    .page { padding: 32px 24px; }
+    h1.title { font-size: clamp(40px, 8vw, 60px); }
+    .masthead-top { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .subtitle { flex-direction: column; align-items: flex-start; }
+    .steps-row, .verdict-grid { grid-template-columns: repeat(3, 1fr); }
+    .step:nth-child(3), .verdict:nth-child(3) { border-right: none; }
+    .step:nth-child(-n+3), .verdict:nth-child(-n+3) { border-bottom: 1px solid var(--rule-soft); }
+    .details-grid, .principles-grid, .donts-grid, .context-callouts { grid-template-columns: 1fr; }
+    .context-banner, .modes-grid { grid-template-columns: 1fr; gap: 16px; }
+    .section-head { grid-template-columns: 60px 1fr; }
+    .section-meta { display: none; }
+    /* Data tables — keep readable width, scroll horizontally on narrow screens */
+    .matrix-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .matrix-header, table.matrix { min-width: 620px; }
+    .triggers-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .triggers-table { min-width: 520px; }
+    /* Colophon — stack rather than collide */
+    .colophon { flex-direction: column; align-items: flex-start; gap: 10px; }
+  }
+  @media (max-width: 560px) {
+    .page { padding: 24px 16px 64px; }
+    h1.title { font-size: clamp(38px, 11vw, 52px); }
+    .steps-row, .verdict-grid { grid-template-columns: repeat(2, 1fr); }
+    .step, .verdict { border-right: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft); }
+    .step:nth-child(2n), .verdict:nth-child(2n) { border-right: none; }
+    .step:nth-last-child(-n+2):nth-child(odd), .verdict:nth-last-child(-n+2):nth-child(odd) { border-bottom: none; }
+    .step:last-child, .verdict:last-child { border-bottom: none; }
+    .matrix-header { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .section-title { font-size: 26px; }
+    .step-letter { font-size: 44px; }
+    .step-tagline { font-size: 15px; }
+    .mode { padding: 24px 22px 22px; }
+    .mode-name { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- MASTHEAD -->
+  <header class="masthead">
+    <div class="masthead-top">
+      <span><a href="/notes">← Notes</a></span>
+      <span>A Field Manual</span>
+      <span>For Agentic Coding</span>
+    </div>
+    <h1 class="title">QRDSPI <span class="amp">&amp;</span> the art of <em>routing</em></h1>
+    <div class="subtitle">
+      <div class="subtitle-text">Which model, which effort, at which phase — a practitioner's reference.</div>
+      <div class="flow-marker">
+        <span class="step">Q</span><span class="arrow">▸</span><span class="step">R</span><span class="arrow">▸</span><span class="step">D</span><span class="arrow">▸</span><span class="step">S</span><span class="arrow">▸</span><span class="step">P</span><span class="arrow">▸</span><span class="step">I</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- §I — THE SIX PHASES -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ I</div>
+      <h2 class="section-title">The six <em>phases</em></h2>
+      <div class="section-meta">The cycle, named</div>
+    </div>
+
+    <div class="steps-row">
+      <div class="step">
+        <div class="step-letter">Q</div>
+        <div class="step-name">Questions</div>
+        <div class="step-tagline">Spot ambiguity; ask clarifying questions.</div>
+        <div class="step-shape">
+          <span class="label">Shape</span>
+          Small input,<br>high leverage
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-letter">R</div>
+        <div class="step-name">Research</div>
+        <div class="step-tagline">Find relevant files, patterns, APIs.</div>
+        <div class="step-shape">
+          <span class="label">Shape</span>
+          Volume work,<br>recall-bound
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-letter">D</div>
+        <div class="step-name">Design</div>
+        <div class="step-tagline">Decide solution shape; debate tradeoffs.</div>
+        <div class="step-shape">
+          <span class="label">Shape</span>
+          Dialogue,<br>exploratory
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-letter">S</div>
+        <div class="step-name">Structure</div>
+        <div class="step-tagline">Map file layout and phase ordering.</div>
+        <div class="step-shape">
+          <span class="label">Shape</span>
+          Small out,<br>huge consequence
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-letter">P</div>
+        <div class="step-name">Plan</div>
+        <div class="step-tagline">Execution plan and validation steps.</div>
+        <div class="step-shape">
+          <span class="label">Shape</span>
+          Sequencing,<br>narrower scope
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-letter">I</div>
+        <div class="step-name">Implement</div>
+        <div class="step-tagline">Execute the plan; diff; tests.</div>
+        <div class="step-shape">
+          <span class="label">Shape</span>
+          Mechanical if<br>plan is good
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §II — ROUTING MATRICES -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ II</div>
+      <h2 class="section-title">Routing <em>matrices</em></h2>
+      <div class="section-meta">Two profiles · Pick one up front</div>
+    </div>
+
+    <!-- FAST PROFILE -->
+    <div class="matrix-container">
+      <div class="matrix-header">
+        <div class="matrix-label"><span class="sigil">⚡</span>Fast / Default Profile</div>
+        <div class="matrix-context">For well-scoped, routine work — the eighty-percent case.</div>
+      </div>
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="width: 56px;">Step</th>
+            <th>Codex</th>
+            <th>Claude Code</th>
+            <th class="pref">My Pick</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="step-mark"><span class="underline">Q</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-low">low</span></td>
+            <td class="cell"><span class="model">Sonnet 4.6</span> <span class="eff eff-med">med</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-low">low</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">R</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-low">low</span></td>
+            <td class="cell"><span class="model">Sonnet 4.6</span> <span class="eff eff-med">med</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-low">low</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">D</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
+            <td class="cell"><span class="model">Opus 4.7</span> <span class="eff eff-high">high</span></td>
+            <td class="cell pref-cell"><span class="model">Opus 4.7</span> <span class="eff eff-high">high</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">S</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
+            <td class="cell"><span class="model">Opus 4.7</span> <span class="eff eff-xhigh">xhigh</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">P</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
+            <td class="cell"><span class="model">Opus 4.7</span> <span class="eff eff-high">high</span></td>
+            <td class="cell pref-cell"><span class="model">Opus 4.7</span> <span class="eff eff-high">high</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">I</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-low">low</span></td>
+            <td class="cell"><span class="model">Sonnet 4.6</span> <span class="eff eff-med">med</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-low">low</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- RELIABLE PROFILE -->
+    <div class="matrix-container">
+      <div class="matrix-header">
+        <div class="matrix-label"><span class="sigil">⌖</span>Reliable / Risky Profile</div>
+        <div class="matrix-context">Auth, migrations, cross-service, ambiguous reqs, irreversible decisions.</div>
+      </div>
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="width: 56px;">Step</th>
+            <th>Codex</th>
+            <th>Claude Code</th>
+            <th class="pref">My Pick</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="step-mark"><span class="underline">Q</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
+            <td class="cell"><span class="model">Opus 4.7</span> <span class="eff eff-high">high</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">R</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-med">med</span></td>
+            <td class="cell"><span class="model">Sonnet 4.6</span> <span class="eff eff-high">high</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-med">med</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">D</span></td>
+            <td class="cell">
+              <span class="line"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span> <span class="role">proposer</span></span>
+              <span class="line"><span class="model">gpt-5.5</span> <span class="eff eff-xhigh">xhigh</span> <span class="role">critic</span></span>
+            </td>
+            <td class="cell">
+              <span class="line"><span class="model">Opus</span> <span class="eff eff-high">high</span> <span class="eff eff-1m">1M</span> <span class="role">proposer</span></span>
+              <span class="line"><span class="model">Opus</span> <span class="eff eff-max">max</span> <span class="eff eff-1m">1M</span> <span class="role">critic</span></span>
+            </td>
+            <td class="cell pref-cell">
+              <span class="line"><span class="model">gpt-5.5</span> <span class="eff eff-xhigh">xhigh</span> <span class="role">proposer</span></span>
+              <span class="line"><span class="model">Opus</span> <span class="eff eff-max">max</span> <span class="eff eff-1m">1M</span> <span class="role">critic</span></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">S</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-xhigh">xhigh</span></td>
+            <td class="cell"><span class="model">Opus 4.7</span> <span class="eff eff-xhigh">xhigh</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-xhigh">xhigh</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">P</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-xhigh">xhigh</span></td>
+            <td class="cell"><span class="model">Opus 4.7</span> <span class="eff eff-xhigh">xhigh</span></td>
+            <td class="cell pref-cell"><span class="model">Opus 4.7</span> <span class="eff eff-xhigh">xhigh</span></td>
+          </tr>
+          <tr>
+            <td class="step-mark"><span class="underline">I</span></td>
+            <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
+            <td class="cell"><span class="model">Sonnet 4.6</span> <span class="eff eff-high">high</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-low">low</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- §III — PER-STEP DETAIL -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ III</div>
+      <h2 class="section-title">Per-step <em>detail</em></h2>
+      <div class="section-meta">What each phase is for</div>
+    </div>
+
+    <div class="details-grid">
+      <div class="detail">
+        <div class="detail-head">
+          <div class="detail-letter">Q</div>
+          <div class="detail-name">Questions<em>Phase one</em></div>
+        </div>
+        <div class="detail-goal">Resolve ambiguity before R wastes effort.</div>
+        <ul>
+          <li>Tiny input, errors compound downstream</li>
+          <li>Frontier-low usually enough; bump if reqs are messy</li>
+          <li>Don't outsource judgment — review the questions</li>
+        </ul>
+        <div class="detail-avoid"><span class="tag">Avoid</span>Letting Q smuggle in design decisions.</div>
+      </div>
+
+      <div class="detail">
+        <div class="detail-head">
+          <div class="detail-letter">R</div>
+          <div class="detail-name">Research<em>Phase two</em></div>
+        </div>
+        <div class="detail-goal">Evidence collection. No opinions yet.</div>
+        <ul>
+          <li>Volume work — bottleneck is recall, not depth</li>
+          <li>Low effort + good tool use beats high effort</li>
+          <li>Tight R compresses the design space for D</li>
+        </ul>
+        <div class="detail-avoid"><span class="tag">Avoid</span>Using 1M context to skip targeted search.</div>
+      </div>
+
+      <div class="detail">
+        <div class="detail-head">
+          <div class="detail-letter">D</div>
+          <div class="detail-name">Design<em>Phase three</em></div>
+        </div>
+        <div class="detail-goal">Decide solution shape with you in the loop.</div>
+        <ul>
+          <li>Dialogue, not delegation — you steer</li>
+          <li>Demand options before recommendations</li>
+          <li>Two-pass (proposer + critic) on risky calls</li>
+        </ul>
+        <div class="detail-avoid"><span class="tag">Avoid</span>Premature convergence on one option.</div>
+      </div>
+
+      <div class="detail">
+        <div class="detail-head">
+          <div class="detail-letter">S</div>
+          <div class="detail-name">Structure<em>Phase four</em></div>
+        </div>
+        <div class="detail-goal">File layout and phase ordering given D's call.</div>
+        <ul>
+          <li>Highest-leverage planning step — never cheap out</li>
+          <li>Small output, big consequence on rework cost</li>
+          <li>If S struggles, D didn't decide enough</li>
+        </ul>
+        <div class="detail-avoid"><span class="tag">Avoid</span>Dropping below high effort, ever.</div>
+      </div>
+
+      <div class="detail">
+        <div class="detail-head">
+          <div class="detail-letter">P</div>
+          <div class="detail-name">Plan<em>Phase five</em></div>
+        </div>
+        <div class="detail-goal">Sequenced steps with validation criteria.</div>
+        <ul>
+          <li>Narrower search space than S — operates inside it</li>
+          <li>Must include rollback / failure criteria for risky work</li>
+          <li>Good P makes I cheap; bad P makes I expensive</li>
+        </ul>
+        <div class="detail-avoid"><span class="tag">Avoid</span>Plans without explicit validation steps.</div>
+      </div>
+
+      <div class="detail">
+        <div class="detail-head">
+          <div class="detail-letter">I</div>
+          <div class="detail-name">Implement<em>Phase six</em></div>
+        </div>
+        <div class="detail-goal">Execute the agreed plan; report violations.</div>
+        <ul>
+          <li>If D/S/P are good, this is mechanical</li>
+          <li>Contract: follow plan; if wrong, stop and report</li>
+          <li>Escalate only when tests turn into diagnosis</li>
+        </ul>
+        <div class="detail-avoid"><span class="tag">Avoid</span>Letting I reinterpret or improvise on the plan.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §IV — 1M CONTEXT -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ IV</div>
+      <h2 class="section-title">On the <em>one-million</em> token window</h2>
+      <div class="section-meta">A specialist tool, not a default</div>
+    </div>
+
+    <div class="context-banner">
+      <div class="lead">
+        Working <strong>memory</strong>,<br>
+        not more <strong>brain</strong>.
+      </div>
+      <div class="lead-sub">
+        Use 1M when the agent must hold many live relationships at once.<br>
+        Not when you want it to think harder. Loading more isn't<br>
+        the same as understanding more.
+      </div>
+    </div>
+
+    <div class="verdict-grid">
+      <div class="verdict">
+        <div class="verdict-letter">Q</div>
+        <div class="verdict-symbol no">✗ No</div>
+        <div class="verdict-note">Small input.</div>
+      </div>
+      <div class="verdict">
+        <div class="verdict-letter">R</div>
+        <div class="verdict-symbol maybe">~ Maybe</div>
+        <div class="verdict-note">If repo is large or unfamiliar.</div>
+      </div>
+      <div class="verdict">
+        <div class="verdict-letter">D</div>
+        <div class="verdict-symbol yes">✓ Yes</div>
+        <div class="verdict-note">Strongest case — especially critic.</div>
+      </div>
+      <div class="verdict">
+        <div class="verdict-letter">S</div>
+        <div class="verdict-symbol maybe">~ Maybe</div>
+        <div class="verdict-note">If R produced large evidence.</div>
+      </div>
+      <div class="verdict">
+        <div class="verdict-letter">P</div>
+        <div class="verdict-symbol no">✗ No</div>
+        <div class="verdict-note">Trust the structure.</div>
+      </div>
+      <div class="verdict">
+        <div class="verdict-letter">I</div>
+        <div class="verdict-symbol no">✗ No</div>
+        <div class="verdict-note">Work from tight plan.</div>
+      </div>
+    </div>
+
+    <div class="context-callouts">
+      <div class="callout">
+        <h4>The frame</h4>
+        <div class="callout-body">
+          Use 1M when many live relationships must be held simultaneously. Not when you want the model to think harder.
+        </div>
+      </div>
+      <div class="callout">
+        <h4>Failure modes</h4>
+        <ul>
+          <li>Stale assumptions anchor</li>
+          <li>Signal drowns in noise</li>
+          <li>Summarizing over deciding</li>
+          <li>Bad context preserved</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <h4>Claude gotcha</h4>
+        <div class="callout-body">
+          <code>opusplan</code> does <strong>not</strong> get the 1M auto-upgrade. Use explicit <code>--model opus</code> for big-context planning.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §V — TRIGGERS -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ V</div>
+      <h2 class="section-title">Escalation <em>triggers</em></h2>
+      <div class="section-meta">Specific signal · Specific step</div>
+    </div>
+
+    <div class="triggers-scroll">
+    <table class="triggers-table">
+      <thead>
+        <tr>
+          <th>Phase</th>
+          <th>Signal</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="step-tag"><span class="marker">Q</span></td>
+          <td class="signal">Surfaces "I'm not sure" or material ambiguity</td>
+          <td class="action">Bump to high · rerun</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">R</span></td>
+          <td class="signal">Conflicting evidence or unclear repo shape</td>
+          <td class="action">Medium · consider 1M for D</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">D</span></td>
+          <td class="signal">Converges on one option without exploring</td>
+          <td class="action">Re-prompt with steelman</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">D</span></td>
+          <td class="signal">All options feel equivalent</td>
+          <td class="action">Ask what each optimizes for</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">D</span></td>
+          <td class="signal">Single-pass feels insufficient</td>
+          <td class="action">Add critic pass · max / xhigh</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">S</span></td>
+          <td class="signal">Plan has more than five sequenced phases</td>
+          <td class="action">xhigh</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">S</span></td>
+          <td class="signal">Keeps surfacing structural problems</td>
+          <td class="action">Back to D · design not decided</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">P</span></td>
+          <td class="signal">Touches auth, migrations, data writes</td>
+          <td class="action">xhigh</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">I</span></td>
+          <td class="signal">Tests fail in non-obvious ways</td>
+          <td class="action">High · debugging needs capability</td>
+        </tr>
+        <tr>
+          <td class="step-tag"><span class="marker">I</span></td>
+          <td class="signal">Implementation attempt failed once</td>
+          <td class="action">High · or rerun P at xhigh</td>
+        </tr>
+        <tr class="note">
+          <td colspan="3">When multiple attempts have failed — convene a full-artifact review at Opus max.</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <!-- §VI — ADVERSARIAL MODES -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ VI</div>
+      <h2 class="section-title">Two adversarial <em>modes</em></h2>
+      <div class="section-meta">Where Opus max actually earns its cost</div>
+    </div>
+
+    <div class="modes-grid">
+      <div class="mode">
+        <div class="mode-label">Mode One</div>
+        <div class="mode-name">The D <em>Critic</em></div>
+        <div class="mode-kind">Preventative</div>
+        <div class="mode-desc">A one-shot review of the proposer's design, before Structure begins. The primary use of Opus max — where its overthinking tendency becomes a feature.</div>
+        <div class="mode-config">
+          <div class="mode-config-row">
+            <span class="label">Codex</span>
+            <span class="value">gpt-5.5 <span class="eff eff-xhigh">xhigh</span></span>
+          </div>
+          <div class="mode-config-row">
+            <span class="label">Claude</span>
+            <span class="value">Opus <span class="eff eff-max">max</span> <span class="eff eff-1m">1M</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mode">
+        <div class="mode-label">Mode Two</div>
+        <div class="mode-name">Full-Artifact <em>Review</em></div>
+        <div class="mode-kind">Remedial</div>
+        <div class="mode-desc">Adversarial pass over all Q/R/D/S/P artifacts. After multiple failures, or before truly high-blast-radius execution.</div>
+        <div class="mode-config">
+          <div class="mode-config-row">
+            <span class="label">Codex</span>
+            <span class="value">gpt-5.5 <span class="eff eff-xhigh">xhigh</span></span>
+          </div>
+          <div class="mode-config-row">
+            <span class="label">Claude</span>
+            <span class="value">Opus <span class="eff eff-max">max</span> <span class="eff eff-1m">1M</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §VII — PRINCIPLES -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ VII</div>
+      <h2 class="section-title">Core <em>principles</em></h2>
+      <div class="section-meta">Six axioms</div>
+    </div>
+
+    <div class="principles-grid">
+      <div class="principle">
+        <div class="principle-num">01</div>
+        <div class="principle-text"><strong>Capability ≠ effort.</strong> Frontier-low often beats weaker-medium at the same cost.</div>
+      </div>
+      <div class="principle">
+        <div class="principle-num">02</div>
+        <div class="principle-text"><strong>Start fast, escalate on signal.</strong> Specific trigger, specific step. No blanket bumping.</div>
+      </div>
+      <div class="principle">
+        <div class="principle-num">03</div>
+        <div class="principle-text"><strong>Speed enables iteration.</strong> Fast high-quality loops beat one slow perfect pass.</div>
+      </div>
+      <div class="principle">
+        <div class="principle-num">04</div>
+        <div class="principle-text"><strong>D, S, P are the floor.</strong> Never cheap out on the planning steps.</div>
+      </div>
+      <div class="principle">
+        <div class="principle-num">05</div>
+        <div class="principle-text"><strong>1M = working memory.</strong> Not more thinking. Hold relationships, don't replace reasoning.</div>
+      </div>
+      <div class="principle">
+        <div class="principle-num">06</div>
+        <div class="principle-text"><strong>Wanting 1M downstream = lossy upstream.</strong> Fix the handoff, not the context window.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- §VIII — DONTS -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ VIII</div>
+      <h2 class="section-title">A short list of <em>don'ts</em></h2>
+      <div class="section-meta">Common failures, named</div>
+    </div>
+
+    <div class="donts-grid">
+      <div class="dont-col">
+        <h4>Workflow</h4>
+        <ul>
+          <li>Skip D, then Q or S takes its job</li>
+          <li>Same dial across all six steps</li>
+          <li>Bump everything when one step struggles</li>
+          <li>Skip handoff artifacts</li>
+        </ul>
+      </div>
+      <div class="dont-col">
+        <h4>Model picks</h4>
+        <ul>
+          <li>Use <code>max</code> as routine planning</li>
+          <li>Use frontier-low on Opus (respects strictly)</li>
+          <li>Prefer weak-medium over frontier-low on Codex</li>
+          <li>Treat D as delegation, not dialogue</li>
+        </ul>
+      </div>
+      <div class="dont-col">
+        <h4>Context</h4>
+        <ul>
+          <li>Load 1M by default</li>
+          <li>Use 1M to mask weak R</li>
+          <li>Trust <code>opusplan</code> for big-context planning</li>
+          <li>Let I reinterpret the plan</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- COLOPHON -->
+  <footer class="colophon">
+    <span>QRDSPI · A field manual</span>
+    <span class="legend"><b>Q</b>uestions · <b>R</b>esearch · <b>D</b>esign · <b>S</b>tructure · <b>P</b>lan · <b>I</b>mplement</span>
+    <span>tomnagengast.com</span>
+  </footer>
+
+</div>
+</body>
+</html>
