@@ -10,6 +10,16 @@ export interface Note {
 
 export const notes: Note[] = [
   {
+    slug: "otel",
+    title: "OpenTelemetry & the shape of signals",
+    date: "2026-05-20",
+    published: true,
+    standalone: true,
+    description:
+      "A practitioner's field manual for logs, traces, and metrics — what each is for, what each costs, and how OTel makes them talk.",
+    content: `A practitioner's field manual for logs, traces, and metrics — what each is for, what each costs, and how OTel makes them talk.`,
+  },
+  {
     slug: "qrptspi",
     title: "QRPTSPI & the art of routing",
     date: "2026-05-20",

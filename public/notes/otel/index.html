@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" sizes="32x32" href="/yeehaw.png">
+<title>OpenTelemetry &amp; the shape of signals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #ffffff;
+    --paper-warm: #f5f7fa;
+    --paper-deep: #eef2f7;
+    --ink: #0f172a;
+    --ink-soft: #475569;
+    --ink-muted: #94a3b8;
+    --ink-faint: rgba(15, 23, 42, 0.12);
+    --rule: #0f172a;
+    --rule-soft: rgba(15, 23, 42, 0.14);
+    --accent: #1d4ed8;
+    --accent-deep: #1e3a8a;
+    --accent-soft: rgba(29, 78, 216, 0.10);
+    --accent-mid: rgba(29, 78, 216, 0.55);
+    --mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+    --serif: 'Fraunces', Georgia, serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+    font-feature-settings: "ss01", "ss02", "cv11";
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.18;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.18'/%3E%3C/svg%3E");
+  }
+
+  .page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 64px 56px 96px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ============ MASTHEAD ============ */
+  .masthead {
+    border-top: 6px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    padding: 24px 0 28px;
+    margin-bottom: 56px;
+  }
+
+  .masthead-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-soft);
+    margin-bottom: 24px;
+  }
+  .masthead-top .dot { color: var(--accent); font-size: 14px; line-height: 1; }
+  .masthead-top a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule-soft);
+    padding-bottom: 1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .masthead-top a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  h1.title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    font-variation-settings: "opsz" 144;
+  }
+  h1.title em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  h1.title .amp {
+    font-style: italic;
+    font-weight: 300;
+    color: var(--ink-muted);
+  }
+
+  .subtitle {
+    margin-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 32px;
+  }
+  .subtitle-text {
+    font-style: italic;
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 560px;
+    line-height: 1.4;
+  }
+  .signal-marker {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .signal-marker .sig {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--ink);
+    color: var(--paper);
+    margin: 0 1px;
+  }
+  .signal-marker .plus { color: var(--ink-muted); margin: 0 4px; }
+
+  /* ============ SECTIONS ============ */
+  section { margin-bottom: 80px; position: relative; }
+
+  .section-head {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    gap: 24px;
+    align-items: baseline;
+    margin-bottom: 32px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+  .section-title {
+    font-weight: 400;
+    font-size: 32px;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+  }
+  .section-title em {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-weight: 300;
+  }
+  .section-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-muted);
+  }
+
+  /* ============ THREE-PILLAR HERO ============ */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .pillar {
+    padding: 32px 28px 28px;
+    border-right: 1px solid var(--rule-soft);
+    position: relative;
+    transition: background 0.25s ease;
+  }
+  .pillar:last-child { border-right: none; }
+  .pillar:hover { background: var(--accent-soft); }
+
+  .pillar-mark {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pillar-mark .glyph { font-size: 16px; line-height: 1; }
+
+  .pillar-name {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 44px;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    margin-bottom: 6px;
+    font-variation-settings: "opsz" 144;
+  }
+  .pillar-name em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 300;
+  }
+
+  .pillar-q {
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--rule-soft);
+  }
+
+  .pillar-body {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .pillar-body strong {
+    font-weight: 600;
+    color: var(--accent-deep);
+  }
+
+  .pillar-shape {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule-soft);
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-muted);
+  }
+  .pillar-shape b { color: var(--ink); font-weight: 600; }
+
+  /* Three-pillar caption row */
+  .pillars-cap {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin-top: 18px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+  .pillars-cap > div { padding: 0 28px; }
+  .pillars-cap b { color: var(--accent); font-weight: 600; }
+
+  /* ============ TRACES VISUAL ============ */
+  .signal-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--rule);
+  }
+  .signal-block.flipped { grid-template-columns: 1fr 1fr; }
+  .signal-prose {
+    padding: 36px 36px 36px 36px;
+    border-right: 1px solid var(--rule-soft);
+    background: var(--paper);
+  }
+  .signal-block.flipped .signal-prose {
+    border-right: none;
+    border-left: 1px solid var(--rule-soft);
+    order: 2;
+  }
+  .signal-visual {
+    padding: 36px 36px 36px 36px;
+    background: var(--paper-warm);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .signal-kicker {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .signal-h {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin-bottom: 16px;
+    font-variation-settings: "opsz" 144;
+  }
+  .signal-h em { font-style: italic; color: var(--accent); font-weight: 400; }
+
+  .signal-prose p {
+    font-size: 15px;
+    margin-bottom: 14px;
+    color: var(--ink);
+  }
+  .signal-prose p.lead {
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+    line-height: 1.45;
+  }
+  .signal-prose code {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: var(--accent-soft);
+    padding: 1px 6px;
+    border-radius: 2px;
+    color: var(--accent-deep);
+  }
+
+  .answers {
+    margin-top: 18px;
+    padding: 14px 16px;
+    background: var(--paper-deep);
+    border-left: 3px solid var(--accent);
+  }
+  .answers .ql {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .answers .qa {
+    font-style: italic;
+    font-size: 15px;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+
+  /* Trace tree visual */
+  .trace-tree {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.9;
+    color: var(--ink);
+  }
+  .trace-tree .root {
+    font-weight: 700;
+    color: var(--accent-deep);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+  }
+  .trace-tree .branch { padding-left: 18px; position: relative; }
+  .trace-tree .branch::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0;
+    width: 12px; height: 14px;
+    border-left: 1px solid var(--ink-muted);
+    border-bottom: 1px solid var(--ink-muted);
+  }
+  .trace-tree .branch.deeper { padding-left: 36px; }
+  .trace-tree .branch.deeper::before { left: 18px; }
+  .trace-tree .bar {
+    display: inline-block;
+    height: 8px;
+    background: var(--accent);
+    vertical-align: middle;
+    margin: 0 8px;
+    border-radius: 1px;
+  }
+  .trace-tree .bar.faint { background: var(--accent-mid); }
+  .trace-tree .ms {
+    color: var(--ink-muted);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+  }
+  .trace-tree .lbl { color: var(--ink-soft); }
+  .trace-tree .lbl b { color: var(--ink); font-weight: 600; }
+
+  /* Metrics histogram visual */
+  .hist {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 180px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 0;
+    margin-bottom: 12px;
+  }
+  .hist .bar {
+    flex: 1;
+    background: var(--accent);
+    position: relative;
+    transition: background 0.2s;
+  }
+  .hist .bar:nth-child(1) { height: 8%;  background: var(--accent-mid); }
+  .hist .bar:nth-child(2) { height: 22%; }
+  .hist .bar:nth-child(3) { height: 64%; }
+  .hist .bar:nth-child(4) { height: 100%; background: var(--accent-deep); }
+  .hist .bar:nth-child(5) { height: 38%; }
+  .hist .bar:nth-child(6) { height: 12%; background: var(--accent-mid); }
+  .hist .bar:nth-child(7) { height: 4%;  background: var(--accent-mid); }
+  .hist .bar::after {
+    content: attr(data-n);
+    position: absolute;
+    bottom: 4px;
+    left: 0; right: 0;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--paper);
+    font-weight: 700;
+  }
+  .hist-axis {
+    display: flex;
+    gap: 4px;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--ink-muted);
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+  .hist-axis span { flex: 1; text-align: center; }
+  .hist-cap {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding-top: 12px;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .hist-cap b { color: var(--accent); }
+
+  /* Logs correlation visual */
+  .log-stack { font-family: var(--mono); font-size: 11px; }
+  .log-row {
+    display: grid;
+    grid-template-columns: 56px 50px 1fr;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule-soft);
+    align-items: baseline;
+  }
+  .log-row:last-child { border-bottom: none; }
+  .log-row .ts { color: var(--ink-muted); font-size: 10px; }
+  .log-row .sev {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    text-align: center;
+    border-radius: 2px;
+  }
+  .log-row .sev.info { background: var(--paper-deep); color: var(--ink-soft); }
+  .log-row .sev.warn { background: rgba(180, 130, 0, 0.12); color: #92651a; }
+  .log-row .sev.err  { background: var(--accent-soft); color: var(--accent-deep); }
+  .log-row .msg { color: var(--ink); }
+  .log-row .msg .tid {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--paper);
+    padding: 1px 5px;
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    border-radius: 2px;
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
+
+  /* ============ THE GLUE (CORRELATION) ============ */
+  .glue {
+    background: var(--paper-deep);
+    border: 1px solid var(--rule);
+    padding: 40px;
+    position: relative;
+  }
+  .glue-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .glue-step {
+    position: relative;
+    padding-right: 16px;
+  }
+  .glue-step + .glue-step::before {
+    content: '→';
+    position: absolute;
+    left: -28px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--serif);
+    font-size: 26px;
+    font-style: italic;
+    line-height: 1;
+    color: var(--accent);
+  }
+  .glue-num {
+    font-family: var(--mono);
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 10px;
+    letter-spacing: -0.04em;
+  }
+  .glue-h {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .glue-body {
+    font-size: 14px;
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .glue-body em { color: var(--ink-soft); }
+  .glue-tail {
+    margin-top: 28px;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ink-soft);
+    line-height: 1.45;
+    max-width: 800px;
+  }
+  .glue-tail b { color: var(--accent); font-style: normal; font-weight: 600; }
+
+  /* ============ PAYLOAD ANATOMY ============ */
+  .anatomy {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--rule);
+  }
+  .anatomy-cell {
+    padding: 32px;
+    border-right: 1px solid var(--rule-soft);
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .anatomy-cell:nth-child(2n) { border-right: none; }
+  .anatomy-cell:nth-last-child(-n+2) { border-bottom: none; }
+  .anatomy-h {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .anatomy-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 14px;
+    letter-spacing: -0.015em;
+  }
+  .anatomy-title em { font-style: italic; color: var(--ink-soft); }
+  .anatomy-body { font-size: 14px; color: var(--ink); margin-bottom: 14px; }
+  .anatomy-body code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--paper-deep);
+    padding: 1px 5px;
+    color: var(--accent-deep);
+  }
+  pre.code {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.55;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 18px 20px;
+    overflow-x: auto;
+    border-radius: 0;
+  }
+  pre.code .k { color: #7cb6ff; }     /* key */
+  pre.code .s { color: #fce98a; }     /* string */
+  pre.code .n { color: #c8e1a0; }     /* number */
+  pre.code .c { color: var(--ink-muted); font-style: italic; } /* comment */
+  pre.code .h { background: var(--accent); color: var(--paper); padding: 0 2px; }
+
+  /* ============ FIELD CHOICES MATRIX ============ */
+  table.matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--serif);
+    font-size: 14px;
+  }
+  table.matrix thead th {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--ink);
+    padding: 14px 14px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper-deep);
+  }
+  table.matrix tbody td {
+    padding: 14px 14px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  table.matrix tbody tr:hover td { background: var(--accent-soft); }
+  table.matrix td.want { font-style: italic; color: var(--ink-soft); }
+  table.matrix td.reach {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+  table.matrix td.note { color: var(--ink-soft); font-size: 13px; }
+
+  /* ============ GOTCHAS ============ */
+  .gotchas {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .gotcha {
+    border-left: 3px solid var(--accent);
+    padding: 4px 0 4px 20px;
+  }
+  .gotcha h4 {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+    color: var(--ink);
+  }
+  .gotcha p {
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .gotcha p em { color: var(--accent); font-style: italic; }
+
+  /* ============ PRINCIPLES ============ */
+  .principles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .principle {
+    padding: 28px 24px;
+    border-right: 1px solid var(--rule-soft);
+    position: relative;
+  }
+  .principle:nth-child(3n) { border-right: none; }
+  .principle:nth-child(n+4) { border-top: 1px solid var(--rule-soft); }
+  .principle-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .principle-text {
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.45;
+    color: var(--ink);
+  }
+  .principle-text b { color: var(--accent-deep); font-weight: 600; }
+
+  /* ============ COLOPHON ============ */
+  .colophon {
+    border-top: 6px solid var(--ink);
+    padding-top: 28px;
+    margin-top: 80px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--ink-soft);
+  }
+  .colophon b { color: var(--ink); }
+  .colophon .acc { color: var(--accent); }
+
+  /* ============ BAGGAGE ASIDE ============ */
+  .aside {
+    margin: 0 0 80px;
+    background: var(--paper-warm);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 44px 0;
+    position: relative;
+  }
+  .aside::before {
+    content: '§ V½';
+    position: absolute;
+    top: 14px; left: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+  }
+  .aside-inner {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .aside-kicker {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .aside-h {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+    margin-bottom: 18px;
+    font-variation-settings: "opsz" 144;
+  }
+  .aside-h em { font-style: italic; color: var(--accent); font-weight: 400; }
+  .aside-prose p {
+    font-size: 14.5px;
+    margin-bottom: 12px;
+    color: var(--ink);
+    line-height: 1.6;
+  }
+  .aside-prose p.aside-lead {
+    font-style: italic;
+    font-size: 16px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+    line-height: 1.45;
+  }
+  .aside-prose code {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    background: var(--paper);
+    padding: 1px 6px;
+    border: 1px solid var(--rule-soft);
+    color: var(--accent-deep);
+  }
+  .aside-flags {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed var(--rule-soft);
+    display: grid;
+    gap: 10px;
+  }
+  .aside-flag {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 10px;
+    align-items: start;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+  .aside-flag::before {
+    content: '!';
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--paper);
+    background: var(--accent);
+    width: 14px; height: 14px;
+    text-align: center;
+    line-height: 14px;
+    margin-top: 2px;
+  }
+  .aside-flag b { color: var(--ink); font-weight: 600; font-style: normal; }
+
+  /* Baggage visual: services in a row with a baggage tag riding along */
+  .baggage-vis {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 28px 24px 24px;
+  }
+  .baggage-cap {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 22px;
+    text-align: center;
+  }
+  .baggage-cap b { color: var(--accent); }
+  .baggage-flow {
+    display: grid;
+    grid-template-columns: 1fr 24px 1fr 24px 1fr 24px 1fr;
+    align-items: center;
+    margin-bottom: 22px;
+  }
+  .svc {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    padding: 14px 6px;
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    letter-spacing: 0.04em;
+  }
+  .svc small {
+    display: block;
+    font-weight: 400;
+    font-size: 9px;
+    color: var(--ink-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+  .arrow {
+    text-align: center;
+    color: var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 22px;
+    line-height: 1;
+  }
+  .baggage-tag-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--rule-soft);
+  }
+  .baggage-tag-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+  .baggage-tag-track {
+    flex: 1;
+    height: 32px;
+    position: relative;
+    background: linear-gradient(to right,
+      var(--accent-soft) 0%,
+      var(--accent-soft) 100%);
+    border: 1px solid var(--accent-mid);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+  }
+  .baggage-pill {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--accent-deep);
+    background: var(--paper);
+    padding: 3px 10px;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    letter-spacing: 0.02em;
+  }
+  .baggage-pill + .baggage-pill { margin-left: 8px; }
+  .baggage-arrows {
+    flex: 1;
+    text-align: right;
+    color: var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 900px) {
+    .page { padding: 40px 24px 64px; }
+    .pillars, .pillars-cap, .principles { grid-template-columns: 1fr; }
+    .pillar { border-right: none; border-bottom: 1px solid var(--rule-soft); }
+    .signal-block, .signal-block.flipped { grid-template-columns: 1fr; }
+    .signal-block.flipped .signal-prose { order: 0; border-left: none; }
+    .signal-prose { border-right: none; border-bottom: 1px solid var(--rule-soft); }
+    .glue-grid { grid-template-columns: 1fr; }
+    .glue-step + .glue-step::before { display: none; }
+    .anatomy { grid-template-columns: 1fr; }
+    .anatomy-cell { border-right: none; }
+    .gotchas { grid-template-columns: 1fr; }
+    .subtitle { flex-direction: column; align-items: flex-start; }
+    .section-head { grid-template-columns: auto 1fr; }
+    .section-meta { display: none; }
+    h1.title { font-size: 44px; }
+    .aside-inner { grid-template-columns: 1fr; gap: 32px; }
+    .baggage-flow { grid-template-columns: 1fr; gap: 8px; }
+    .baggage-flow .arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ============ MASTHEAD ============ -->
+  <header class="masthead">
+    <div class="masthead-top">
+      <span><a href="/notes">← Notes</a></span>
+      <span><span class="dot">●</span> A Field Manual For Observability</span>
+    </div>
+
+    <h1 class="title">OpenTelemetry <span class="amp">&amp;</span> the <em>shape</em> of signals</h1>
+
+    <div class="subtitle">
+      <p class="subtitle-text">
+        Three signals, one trace_id. A practitioner's guide to logs, traces, and metrics — what each one is <em>for</em>, what each one <em>costs</em>, and how OTel makes them talk to each other.
+      </p>
+      <p class="signal-marker">
+        <span class="sig">LOGS</span><span class="plus">+</span><span class="sig">TRACES</span><span class="plus">+</span><span class="sig">METRICS</span>
+      </p>
+    </div>
+  </header>
+
+  <!-- ============ § I — THE THREE PILLARS ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ I</div>
+      <h2 class="section-title">The three <em>signals</em></h2>
+      <div class="section-meta">Each one answers a question</div>
+    </div>
+
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pillar-mark"><span class="glyph">≡</span> Signal 01</div>
+        <div class="pillar-name"><em>Logs</em></div>
+        <p class="pillar-q">"What did the code <em>say</em> happened?"</p>
+        <p class="pillar-body">
+          Timestamped, structured event records — <strong>the source of truth</strong> for what actually happened. Every field you choose to emit is queryable; every record is independently meaningful. When stamped with a <code style="font-family:var(--mono);font-size:12px;background:var(--accent-soft);padding:1px 5px;color:var(--accent-deep)">trace_id</code>, they slot into the rest of the picture for free.
+        </p>
+        <p class="pillar-shape"><b>Shape:</b> the record</p>
+      </div>
+
+      <div class="pillar">
+        <div class="pillar-mark"><span class="glyph">⎯</span> Signal 02</div>
+        <div class="pillar-name"><em>Traces</em></div>
+        <p class="pillar-q">"Where did this one request actually go?"</p>
+        <p class="pillar-body">
+          A trace is the end-to-end <strong>journey of a single request</strong>. It's made of <strong>spans</strong> — units of work with parent/child relationships, durations, and attributes. Stitched together by a shared <code style="font-family:var(--mono);font-size:12px;background:var(--accent-soft);padding:1px 5px;color:var(--accent-deep)">trace_id</code> propagated across service boundaries.
+        </p>
+        <p class="pillar-shape"><b>Shape:</b> a tree</p>
+      </div>
+
+      <div class="pillar">
+        <div class="pillar-mark"><span class="glyph">⊟</span> Signal 03</div>
+        <div class="pillar-name"><em>Metrics</em></div>
+        <p class="pillar-q">"What's the shape of the system, over time?"</p>
+        <p class="pillar-body">
+          Numeric measurements <strong>pre-aggregated</strong> over time windows. Counters, gauges, histograms. Cheap to store, ideal for dashboards and alerts — but you lose per-request detail. <em>1,432 requests collapse into six bucket counts.</em>
+        </p>
+        <p class="pillar-shape"><b>Shape:</b> a histogram</p>
+      </div>
+    </div>
+
+    <div class="pillars-cap">
+      <div><b>Strong</b> at the substance of what happened</div>
+      <div><b>Strong</b> at causal flow and latency</div>
+      <div><b>Strong</b> at aggregate shape and alerting</div>
+    </div>
+  </section>
+
+  <!-- ============ § II — LOGS UP CLOSE ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ II</div>
+      <h2 class="section-title">Logs, up <em>close</em></h2>
+      <div class="section-meta">Structured records · Stamped with trace_id</div>
+    </div>
+
+    <div class="signal-block">
+      <div class="signal-prose">
+        <div class="signal-kicker">Anatomy</div>
+        <h3 class="signal-h">The <em>record</em> of what happened.</h3>
+        <p class="lead">A log record is a structured event: when it happened, how severe, what was going on, and — if it was emitted inside an active span — which trace it belongs to.</p>
+        <p>The fields that make a log queryable: <code>timestamp</code>, <code>severityNumber</code> (normalized 1–24), <code>body</code> (string or structured), <code>attributes</code> (any key/values you want indexed), and <code>trace_id</code> / <code>span_id</code> for correlation.</p>
+        <p>Because every field you emit is queryable, logs are the most flexible signal of the three — you can answer questions you didn't know to ask when you instrumented. Look at the rows opposite: same <code>trace_id</code> across all four entries means you can click a slow span and pull the exact log lines emitted while it was running.</p>
+        <div class="answers">
+          <div class="ql">Best at</div>
+          <div class="qa">High-fidelity event detail, ad-hoc investigation, audit trails, anything you'll want to filter or aggregate on later. The signal that adapts to the question.</div>
+        </div>
+      </div>
+      <div class="signal-visual">
+        <div class="log-stack">
+          <div class="log-row">
+            <div class="ts">800ms</div>
+            <div class="sev info">INFO</div>
+            <div class="msg">request received · u_8821 <span class="tid">5b8aa5…df2</span></div>
+          </div>
+          <div class="log-row">
+            <div class="ts">812ms</div>
+            <div class="sev info">INFO</div>
+            <div class="msg">cache miss for user:u_8821 <span class="tid">5b8aa5…df2</span></div>
+          </div>
+          <div class="log-row">
+            <div class="ts">870ms</div>
+            <div class="sev warn">WARN</div>
+            <div class="msg">upstream slow, retrying (1/3) <span class="tid">5b8aa5…df2</span></div>
+          </div>
+          <div class="log-row">
+            <div class="ts">380ms</div>
+            <div class="sev err">ERROR</div>
+            <div class="msg">connection reset by peer <span class="tid">5b8aa5…df2</span></div>
+          </div>
+        </div>
+        <div style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--rule-soft);">
+          Four records · one trace · one story
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § III — TRACES UP CLOSE ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ III</div>
+      <h2 class="section-title">Traces, up <em>close</em></h2>
+      <div class="section-meta">A tree of spans · One trace_id</div>
+    </div>
+
+    <div class="signal-block flipped">
+      <div class="signal-prose">
+        <div class="signal-kicker">Anatomy</div>
+        <h3 class="signal-h">Each request is a <em>tree</em>.</h3>
+        <p class="lead">A span is one unit of work — an HTTP handler, a DB query, an LLM call. Spans nest. The root span covers the whole request; children cover the steps within it.</p>
+        <p>Every span carries a <code>trace_id</code> (same across the whole tree), its own <code>span_id</code>, and a <code>parent_span_id</code> pointing up the tree. That's how the backend reconstructs the diagram you see opposite from a stream of disconnected span records.</p>
+        <p>Context propagation across services uses the W3C <code>traceparent</code> header — that's the mechanism that lets a span emitted by service B get stitched onto a trace started by service A.</p>
+        <div class="answers">
+          <div class="ql">Best at</div>
+          <div class="qa">Debugging latency, understanding cross-service causality, finding which step in a pipeline failed and why.</div>
+        </div>
+      </div>
+      <div class="signal-visual">
+        <div class="trace-tree">
+          <div class="root">POST /api/chat <span class="ms">450ms</span></div>
+          <div class="branch">
+            <span class="lbl"><b>auth.verify</b></span>
+            <span class="bar" style="width: 14px;"></span>
+            <span class="ms">12ms</span>
+          </div>
+          <div class="branch">
+            <span class="lbl"><b>db.query</b> "SELECT user"</span>
+            <span class="bar" style="width: 38px;"></span>
+            <span class="ms">45ms</span>
+          </div>
+          <div class="branch">
+            <span class="lbl"><b>llm.completion</b></span>
+            <span class="bar" style="width: 180px;"></span>
+            <span class="ms">380ms</span>
+          </div>
+          <div class="branch deeper">
+            <span class="lbl">tokenizer.encode</span>
+            <span class="bar faint" style="width: 12px;"></span>
+            <span class="ms">8ms</span>
+          </div>
+          <div class="branch">
+            <span class="lbl"><b>db.insert</b> "messages"</span>
+            <span class="bar" style="width: 18px;"></span>
+            <span class="ms">15ms</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § IV — METRICS UP CLOSE ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ IV</div>
+      <h2 class="section-title">Metrics, up <em>close</em></h2>
+      <div class="section-meta">Numbers, summarized over time</div>
+    </div>
+
+    <div class="signal-block">
+      <div class="signal-prose">
+        <div class="signal-kicker">Anatomy</div>
+        <h3 class="signal-h">Detail traded for <em>volume</em>.</h3>
+        <p class="lead">A metric is a stream of numeric data points, each with attributes (the dimensions you slice by) and a timestamp. The aggregation happens before storage.</p>
+        <p>OTel defines a few instrument types: <code>Counter</code> (monotonic — requests, errors, tokens), <code>UpDownCounter</code> (queue depth, active connections), <code>Histogram</code> (distributions — latency, payload size), and <code>Gauge</code> (instantaneous — CPU, memory).</p>
+        <p>The histogram opposite is what's behind a p99 latency number. Six bucket counts summarize 1,432 requests. You know the <em>shape</em> of the distribution; you don't know <em>which</em> request was slow.</p>
+        <div class="answers">
+          <div class="ql">Best at</div>
+          <div class="qa">Dashboards, SLO tracking, alerting. The thing you put thresholds on. Cheap enough to keep forever.</div>
+        </div>
+      </div>
+      <div class="signal-visual">
+        <div style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 10px;">
+          http.server.request.duration · /api/chat
+        </div>
+        <div class="hist">
+          <div class="bar" data-n="12"></div>
+          <div class="bar" data-n="204"></div>
+          <div class="bar" data-n="588"></div>
+          <div class="bar" data-n="880"></div>
+          <div class="bar" data-n="300"></div>
+          <div class="bar" data-n="30"></div>
+          <div class="bar" data-n="6"></div>
+        </div>
+        <div class="hist-axis">
+          <span>0</span><span>50ms</span><span>100</span><span>250</span><span>500</span><span>1s</span><span>2s+</span>
+        </div>
+        <div class="hist-cap">1,432 requests · <b>p99 ≈ 920ms</b> · 6 bucket counts</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § V — THE GLUE ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ V</div>
+      <h2 class="section-title">How they <em>talk</em> to each other</h2>
+      <div class="section-meta">Correlation is the product</div>
+    </div>
+
+    <div class="glue">
+      <div class="glue-grid">
+        <div class="glue-step">
+          <div class="glue-num">01</div>
+          <div class="glue-h">Logs hold the substance</div>
+          <p class="glue-body"><b>Logs</b> are the events themselves — what your code saw, what it tried, what failed. Every field you chose to record is now queryable. <em>This is where the answer lives.</em></p>
+        </div>
+        <div class="glue-step">
+          <div class="glue-num">02</div>
+          <div class="glue-h">Traces add structure</div>
+          <p class="glue-body"><b>Traces</b> nest events into a tree of spans: which step called which, how long each took, what was waiting on what. The shared <code style="font-family:var(--mono);font-size:12px;color:var(--accent-deep)">trace_id</code> is what makes the cross-reference work.</p>
+        </div>
+        <div class="glue-step">
+          <div class="glue-num">03</div>
+          <div class="glue-h">Metrics add scale</div>
+          <p class="glue-body"><b>Metrics</b> step back from individual requests to show aggregate shape — error rates, latency distributions, throughput. <em>The view that drives alerts and dashboards.</em></p>
+        </div>
+      </div>
+
+      <p class="glue-tail">
+        Different signals, different strengths. <b>Logs</b> carry the substance — the actual events, with whatever detail you chose to record. <b>Traces</b> add structure: how spans nest, how long each took, which one was waiting on what. <b>Metrics</b> add scale: the aggregate view across millions of events. OTel's contribution isn't any single signal — it's the shared semantic conventions and the shared <code style="font-family:var(--mono);font-size:14px;background:var(--paper);padding:1px 6px;border:1px solid var(--rule-soft);color:var(--accent-deep);font-style:normal">trace_id</code> that let the three views compose.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ § V½ — BAGGAGE ASIDE ============ -->
+  <aside class="aside">
+    <div class="aside-inner">
+      <div class="aside-prose">
+        <div class="aside-kicker">An aside · the fourth thing</div>
+        <h2 class="aside-h">On <em>baggage</em></h2>
+        <p class="aside-lead">A short detour, because the OTel spec lists a fourth concept alongside the three signals — and you'll hit it the moment you want a user_id from your front door to ride along into your fifth-hop service.</p>
+        <p><b>Baggage</b> is a set of key-value pairs that travel with the trace context across service boundaries, propagated automatically via the W3C <code>baggage</code> HTTP header. Same propagation plumbing as <code>traceparent</code>, different cargo.</p>
+        <p>Where <code>traceparent</code> carries the <em>identity</em> of a request (trace_id, span_id), baggage carries <em>application data</em>: <code>user.id</code>, <code>tenant.id</code>, <code>feature.flag</code>, <code>region</code> — whatever you want every downstream service to see without threading it through every API call.</p>
+        <p>It's not really a signal in the same sense as logs, metrics, or traces — you don't store and query it. It's a <em>propagation utility</em> that makes the other three more useful by giving them shared context to attach to.</p>
+
+        <div class="aside-flags">
+          <div class="aside-flag"><span><b>Not automatic on telemetry.</b> Baggage doesn't show up as an attribute on your spans or logs unless you explicitly read it out and attach it. Easy to miss.</span></div>
+          <div class="aside-flag"><span><b>It propagates over the network.</b> Anything in baggage rides in plaintext HTTP headers to every downstream service — including third parties. No PII, no secrets.</span></div>
+          <div class="aside-flag"><span><b>Keep it small.</b> Every request carries the full set. Add a megabyte to baggage, pay it on every hop.</span></div>
+        </div>
+      </div>
+
+      <div class="baggage-vis">
+        <div class="baggage-cap"><b>baggage</b> rides alongside <b>traceparent</b></div>
+        <div class="baggage-flow">
+          <div class="svc">gateway<small>service A</small></div>
+          <div class="arrow">→</div>
+          <div class="svc">auth<small>service B</small></div>
+          <div class="arrow">→</div>
+          <div class="svc">chat-api<small>service C</small></div>
+          <div class="arrow">→</div>
+          <div class="svc">llm-proxy<small>service D</small></div>
+        </div>
+        <div class="baggage-tag-row">
+          <div class="baggage-tag-label">In every<br>request →</div>
+          <div class="baggage-tag-track">
+            <span class="baggage-pill">user.id=u_8821</span>
+            <span class="baggage-pill">tenant=acme</span>
+            <span class="baggage-arrows">▸▸▸▸▸</span>
+          </div>
+        </div>
+        <div style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-muted); margin-top: 14px; line-height: 1.5;">
+          Set once at the edge · readable in every service · attach to spans / logs <em style="font-style: italic; color: var(--accent);">explicitly</em>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ § VI — PAYLOAD ANATOMY ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ VI</div>
+      <h2 class="section-title">What they look like, <em>on the wire</em></h2>
+      <div class="section-meta">OTLP/JSON · abbreviated</div>
+    </div>
+
+    <div class="anatomy">
+      <div class="anatomy-cell">
+        <div class="anatomy-h">Log · One record</div>
+        <h3 class="anatomy-title">A <em>complete</em> event</h3>
+        <p class="anatomy-body">Severity, body, attributes — and at the bottom, the <code>traceId</code> / <code>spanId</code> that places this record inside a trace when one exists.</p>
+<pre class="code"><span class="k">"logRecords"</span>: [{
+  <span class="k">"timeUnixNano"</span>: <span class="s">"1716220800380000000"</span>,
+  <span class="k">"severityNumber"</span>: <span class="n">17</span>,  <span class="c">// ERROR</span>
+  <span class="k">"severityText"</span>: <span class="s">"ERROR"</span>,
+  <span class="k">"body"</span>: {
+    <span class="k">"stringValue"</span>: <span class="s">"connection reset by peer"</span>
+  },
+  <span class="k">"attributes"</span>: [
+    { <span class="k">"key"</span>: <span class="s">"error.type"</span>,
+      <span class="k">"value"</span>: { <span class="k">"stringValue"</span>: <span class="s">"ECONNRESET"</span> } }
+  ],
+  <span class="h"><span class="k">"traceId"</span>: <span class="s">"5b8aa5a2d2c872e8..."</span></span>,
+  <span class="h"><span class="k">"spanId"</span>:  <span class="s">"a3c4f1e2d5b67890"</span></span>
+}]</pre>
+      </div>
+
+      <div class="anatomy-cell">
+        <div class="anatomy-h">Trace · One span</div>
+        <h3 class="anatomy-title">A node in the <em>tree</em></h3>
+        <p class="anatomy-body">Note the shared <code>traceId</code> linking back to the log above, and the <code>parentSpanId</code> pointing up the tree. <code>kind: 3</code> means CLIENT — outbound call.</p>
+<pre class="code"><span class="k">"spans"</span>: [{
+  <span class="h"><span class="k">"traceId"</span>: <span class="s">"5b8aa5a2d2c872e8..."</span></span>,
+  <span class="k">"spanId"</span>: <span class="s">"a3c4f1e2d5b67890"</span>,
+  <span class="k">"parentSpanId"</span>: <span class="s">"051581bf3cb55c13"</span>,
+  <span class="k">"name"</span>: <span class="s">"llm.completion"</span>,
+  <span class="k">"kind"</span>: <span class="n">3</span>,
+  <span class="k">"startTimeUnixNano"</span>: <span class="s">"1716220800070000000"</span>,
+  <span class="k">"endTimeUnixNano"</span>:   <span class="s">"1716220800450000000"</span>,
+  <span class="k">"attributes"</span>: [
+    { <span class="k">"key"</span>: <span class="s">"gen_ai.system"</span>,
+      <span class="k">"value"</span>: { <span class="k">"stringValue"</span>: <span class="s">"anthropic"</span> } },
+    { <span class="k">"key"</span>: <span class="s">"gen_ai.usage.input_tokens"</span>,
+      <span class="k">"value"</span>: { <span class="k">"intValue"</span>: <span class="s">"1240"</span> } }
+  ],
+  <span class="k">"status"</span>: { <span class="k">"code"</span>: <span class="n">1</span> }
+}]</pre>
+      </div>
+
+      <div class="anatomy-cell">
+        <div class="anatomy-h">Metric · One histogram point</div>
+        <h3 class="anatomy-title">1,432 requests, <em>six numbers</em></h3>
+        <p class="anatomy-body"><code>bucketCounts</code> has one more entry than <code>explicitBounds</code>. The summarization that makes metrics cheap.</p>
+<pre class="code"><span class="k">"histogram"</span>: {
+  <span class="k">"aggregationTemporality"</span>: <span class="n">2</span>,  <span class="c">// cumulative</span>
+  <span class="k">"dataPoints"</span>: [{
+    <span class="k">"attributes"</span>: [
+      { <span class="k">"key"</span>: <span class="s">"http.route"</span>,
+        <span class="k">"value"</span>: { <span class="k">"stringValue"</span>: <span class="s">"/api/chat"</span> } }
+    ],
+    <span class="k">"timeUnixNano"</span>: <span class="s">"1716220860000000000"</span>,
+    <span class="k">"count"</span>: <span class="s">"1432"</span>,
+    <span class="k">"sum"</span>: <span class="n">612.4</span>,
+    <span class="h"><span class="k">"bucketCounts"</span>: [<span class="s">"12"</span>,<span class="s">"204"</span>,<span class="s">"880"</span>,<span class="s">"300"</span>,<span class="s">"30"</span>,<span class="s">"6"</span>]</span>,
+    <span class="k">"explicitBounds"</span>: [<span class="n">0.05</span>,<span class="n">0.1</span>,<span class="n">0.25</span>,<span class="n">0.5</span>,<span class="n">1.0</span>]
+  }]
+}</pre>
+      </div>
+
+      <div class="anatomy-cell" style="background: var(--paper-deep);">
+        <div class="anatomy-h">Envelope</div>
+        <h3 class="anatomy-title">Three levels of <em>nesting</em></h3>
+        <p class="anatomy-body" style="margin-bottom: 18px;">Every signal type wraps its payload in the same three-tier structure:</p>
+        <p class="anatomy-body" style="font-size:13px;">
+          <code style="display:block;margin-bottom:6px;">resourceLogs / resourceSpans / resourceMetrics</code>
+          <span style="color:var(--ink-soft);font-style:italic;font-size:13px;display:block;margin-left:14px;margin-bottom:10px;">— what produced this (service, host, pod)</span>
+          <code style="display:block;margin-bottom:6px;">  scopeLogs / scopeSpans / scopeMetrics</code>
+          <span style="color:var(--ink-soft);font-style:italic;font-size:13px;display:block;margin-left:14px;margin-bottom:10px;">— which instrumentation library emitted it</span>
+          <code style="display:block;margin-bottom:6px;">    logRecords / spans / metrics</code>
+          <span style="color:var(--ink-soft);font-style:italic;font-size:13px;display:block;margin-left:14px;">— the actual data points</span>
+        </p>
+        <p class="anatomy-body" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--rule-soft); font-style:italic; color: var(--ink-soft);">
+          The nesting deduplicates resource and scope attributes — you only describe the service once per batch, not on every record.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § VII — WHEN TO REACH FOR WHICH ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ VII</div>
+      <h2 class="section-title">When to reach for <em>which</em></h2>
+      <div class="section-meta">A practitioner's table</div>
+    </div>
+
+    <table class="matrix">
+      <thead>
+        <tr>
+          <th style="width: 32%;">You want to know…</th>
+          <th style="width: 18%;">Reach for</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="want">"Is anything broken right now?"</td>
+          <td class="reach">Metrics</td>
+          <td class="note">Pre-aggregated, cheap to alert on. The thing your pager talks to.</td>
+        </tr>
+        <tr>
+          <td class="want">"Where did the time go for <em>this</em> request?"</td>
+          <td class="reach">Traces</td>
+          <td class="note">Per-span durations and parent/child relationships show the critical path.</td>
+        </tr>
+        <tr>
+          <td class="want">"What exactly did the code report when it failed?"</td>
+          <td class="reach">Logs</td>
+          <td class="note">Stack traces, error messages, structured event data — the long-form detail.</td>
+        </tr>
+        <tr>
+          <td class="want">"Is this regression in p99 latency our fault or upstream's?"</td>
+          <td class="reach">Metrics → Traces</td>
+          <td class="note">Metric tells you it's regressed; traces show which span got slower.</td>
+        </tr>
+        <tr>
+          <td class="want">"How often does this specific code path execute?"</td>
+          <td class="reach">Counter</td>
+          <td class="note">If you only need the count, a counter is the cheapest answer. If you'll later want the <em>why</em>, log it.</td>
+        </tr>
+        <tr>
+          <td class="want">"Why did <em>this user's</em> request fail at 14:32?"</td>
+          <td class="reach">Traces + Logs</td>
+          <td class="note">Find the trace, pull logs by <code style="font-family:var(--mono);font-size:12px;background:var(--paper-deep);padding:1px 4px;color:var(--accent-deep)">trace_id</code>. The full story.</td>
+        </tr>
+        <tr>
+          <td class="want">"Where are tokens being burned?"</td>
+          <td class="reach">Span attrs</td>
+          <td class="note">Per-call detail on LLM spans (input/output tokens) beats a coarse counter.</td>
+        </tr>
+        <tr>
+          <td class="want">"What's our 30-day cost trend by route?"</td>
+          <td class="reach">Metrics</td>
+          <td class="note">For pure aggregate trends, pre-aggregated counters are cheapest at long retention.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ § VIII — GOTCHAS ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ VIII</div>
+      <h2 class="section-title">Things that <em>trip people up</em></h2>
+      <div class="section-meta">Confusions, named</div>
+    </div>
+
+    <div class="gotchas">
+      <div class="gotcha">
+        <h4>Spans, span events, and logs</h4>
+        <p>Three places to put event data, with real overlap. <em>Span attributes</em> describe the whole span; <em>span events</em> are timestamped annotations inside a span; <em>logs</em> are independent records correlated by trace_id. Reasonable shops land in different places — some treat logs as the primary event store and use spans for timing; others lean on span events. The OTel ecosystem supports both; pick what matches how your team actually queries.</p>
+      </div>
+
+      <div class="gotcha">
+        <h4>Sampling cuts traces, not metrics</h4>
+        <p>Traces get sampled — head-based (decide at trace start) or tail-based (decide after, based on errors / latency). Metrics are <em>unsampled by design</em>; aggregation is the sampling. Logs are usually unsampled but can be filtered.</p>
+      </div>
+
+      <div class="gotcha">
+        <h4>The collector is not optional in production</h4>
+        <p>Don't send OTLP straight from app to backend. The <em>OpenTelemetry Collector</em> handles batching, retries, redaction, sampling, and fan-out. It's the layer that decouples your instrumentation from your vendor choice.</p>
+      </div>
+
+      <div class="gotcha">
+        <h4>Cumulative vs. delta temporality matters</h4>
+        <p>A counter with cumulative temporality has been counting since process start. With delta, each export is "since last export." Backends prefer one or the other — Prometheus-style is cumulative; some vendors want delta. Mismatch = wrong dashboards.</p>
+      </div>
+
+      <div class="gotcha">
+        <h4>Semantic conventions are the whole point</h4>
+        <p>Without shared attribute names — <code style="font-family:var(--mono);font-size:12px;background:var(--paper-deep);padding:0 4px;color:var(--accent-deep)">http.request.method</code>, <code style="font-family:var(--mono);font-size:12px;background:var(--paper-deep);padding:0 4px;color:var(--accent-deep)">db.system</code>, <code style="font-family:var(--mono);font-size:12px;background:var(--paper-deep);padding:0 4px;color:var(--accent-deep)">gen_ai.system</code> — vendors can't write generic queries. Resist the urge to make up your own attribute names where conventions exist.</p>
+      </div>
+
+      <div class="gotcha">
+        <h4>Cardinality kills metrics</h4>
+        <p>Every unique combination of attribute values is a separate time series. Tagging a metric with <code style="font-family:var(--mono);font-size:12px;background:var(--paper-deep);padding:0 4px;color:var(--accent-deep)">user_id</code> creates a series per user — millions of them. Put high-cardinality data on <em>spans or logs</em> where it belongs; keep metric attributes low cardinality.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ § IX — PRINCIPLES ============ -->
+  <section>
+    <div class="section-head">
+      <div class="section-num">§ IX</div>
+      <h2 class="section-title">Core <em>principles</em></h2>
+      <div class="section-meta">Six things to remember</div>
+    </div>
+
+    <div class="principles">
+      <div class="principle">
+        <div class="principle-num">01</div>
+        <p class="principle-text"><b>Three signals, one trace_id.</b> Correlation is the product. Signals without shared context are three siloed tools in a trench coat.</p>
+      </div>
+      <div class="principle">
+        <div class="principle-num">02</div>
+        <p class="principle-text"><b>Each signal answers a different question.</b> Logs: <em>what happened?</em> Traces: <em>how did it flow?</em> Metrics: <em>how often, how fast, how many?</em></p>
+      </div>
+      <div class="principle">
+        <div class="principle-num">03</div>
+        <p class="principle-text"><b>Pre-aggregate metrics, per-request traces.</b> Cost and detail trade against each other. Pick the right tool for the question.</p>
+      </div>
+      <div class="principle">
+        <div class="principle-num">04</div>
+        <p class="principle-text"><b>Conventions over creativity.</b> Use OTel's semantic conventions where they exist. Your attribute names are not the differentiator.</p>
+      </div>
+      <div class="principle">
+        <div class="principle-num">05</div>
+        <p class="principle-text"><b>The collector is infrastructure.</b> Batching, redaction, sampling, fan-out. Don't let apps send OTLP straight to vendors.</p>
+      </div>
+      <div class="principle">
+        <div class="principle-num">06</div>
+        <p class="principle-text"><b>High cardinality belongs on spans and logs.</b> User IDs, request IDs, prompt hashes — these are queryable attributes, not metric labels.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COLOPHON ============ -->
+  <footer class="colophon">
+    <span>OpenTelemetry · <b>A field manual</b></span>
+    <span><span class="acc">●</span> <b>Logs</b> · <b>Traces</b> · <b>Metrics</b></span>
+    <span>tomnagengast.com</span>
+  </footer>
+
+</div>
+</body>
+</html>

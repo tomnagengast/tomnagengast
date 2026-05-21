@@ -2,15 +2,21 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-function rewriteQrptspiUrl(req: { url?: string }) {
-  if (req.url === "/notes/qrptspi" || req.url === "/notes/qrptspi/") {
-    req.url = "/notes/qrptspi/index.html";
+const STANDALONE_SLUGS = ["qrptspi", "otel"];
+
+function rewriteStandaloneUrl(req: { url?: string }) {
+  if (!req.url) return;
+  for (const slug of STANDALONE_SLUGS) {
+    if (req.url === `/notes/${slug}` || req.url === `/notes/${slug}/`) {
+      req.url = `/notes/${slug}/index.html`;
+      return;
+    }
   }
 }
 
-function qrptspiPrettyUrl() {
+function standalonePrettyUrl() {
   return {
-    name: "qrptspi-pretty-url",
+    name: "standalone-pretty-url",
     configureServer(server: {
       middlewares: {
         use: (
@@ -19,7 +25,7 @@ function qrptspiPrettyUrl() {
       };
     }) {
       server.middlewares.use((req, _res, next) => {
-        rewriteQrptspiUrl(req);
+        rewriteStandaloneUrl(req);
         next();
       });
     },
@@ -31,7 +37,7 @@ function qrptspiPrettyUrl() {
       };
     }) {
       server.middlewares.use((req, _res, next) => {
-        rewriteQrptspiUrl(req);
+        rewriteStandaloneUrl(req);
         next();
       });
     },
@@ -40,5 +46,5 @@ function qrptspiPrettyUrl() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [qrptspiPrettyUrl(), react(), tailwindcss()],
+  plugins: [standalonePrettyUrl(), react(), tailwindcss()],
 });
