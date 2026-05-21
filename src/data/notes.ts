@@ -10,13 +10,13 @@ export interface Note {
 
 export const notes: Note[] = [
   {
-    slug: "qrspi",
-    title: "QRDSPI & the art of routing",
-    date: "2026-05-19",
+    slug: "qrptspi",
+    title: "QRPTSPI & the art of routing",
+    date: "2026-05-20",
     published: true,
     standalone: true,
-    description: "Standalone reference for QRDSPI model selection.",
-    content: `Standalone reference for QRDSPI model selection.`,
+    description: "Standalone reference for QRPTSPI model selection.",
+    content: `Standalone reference for QRPTSPI model selection.`,
   },
   {
     slug: "example-note",

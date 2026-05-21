@@ -7,11 +7,11 @@
     <language>en-us</language>
     <atom:link href="https://tomnagengast.com/rss.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>QRDSPI & the art of routing</title>
-      <link>https://tomnagengast.com/notes/qrspi</link>
-      <guid>https://tomnagengast.com/notes/qrspi</guid>
-      <pubDate>Tue, 19 May 2026 00:00:00 GMT</pubDate>
-      <description>Standalone reference for QRDSPI model selection.</description>
+      <title>QRPTSPI &amp; the art of routing</title>
+      <link>https://tomnagengast.com/notes/qrptspi</link>
+      <guid>https://tomnagengast.com/notes/qrptspi</guid>
+      <pubDate>Wed, 20 May 2026 00:00:00 GMT</pubDate>
+      <description>Standalone reference for QRPTSPI model selection.</description>
     </item>
   </channel>
 </rss>

@@ -2,15 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
-function rewriteQrspiUrl(req: { url?: string }) {
-  if (req.url === "/notes/qrspi" || req.url === "/notes/qrspi/") {
-    req.url = "/notes/qrspi/index.html";
+function rewriteQrptspiUrl(req: { url?: string }) {
+  if (req.url === "/notes/qrptspi" || req.url === "/notes/qrptspi/") {
+    req.url = "/notes/qrptspi/index.html";
   }
 }
 
-function qrspiPrettyUrl() {
+function qrptspiPrettyUrl() {
   return {
-    name: "qrspi-pretty-url",
+    name: "qrptspi-pretty-url",
     configureServer(server: {
       middlewares: {
         use: (
@@ -19,7 +19,7 @@ function qrspiPrettyUrl() {
       };
     }) {
       server.middlewares.use((req, _res, next) => {
-        rewriteQrspiUrl(req);
+        rewriteQrptspiUrl(req);
         next();
       });
     },
@@ -31,7 +31,7 @@ function qrspiPrettyUrl() {
       };
     }) {
       server.middlewares.use((req, _res, next) => {
-        rewriteQrspiUrl(req);
+        rewriteQrptspiUrl(req);
         next();
       });
     },
@@ -40,5 +40,5 @@ function qrspiPrettyUrl() {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [qrspiPrettyUrl(), react(), tailwindcss()],
+  plugins: [qrptspiPrettyUrl(), react(), tailwindcss()],
 });
