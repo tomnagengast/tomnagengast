@@ -22,11 +22,20 @@ export const notes: Note[] = [
   {
     slug: "qrptspi",
     title: "QRPTSPI & the art of routing",
-    date: "2026-05-20",
+    date: "2026-05-21",
     published: true,
     standalone: true,
     description: "Standalone reference for QRPTSPI model selection.",
     content: `Standalone reference for QRPTSPI model selection.`,
+  },
+  {
+    slug: "evals",
+    title: "Routing matrix evaluation",
+    date: "2026-05-21",
+    published: false,
+    description:
+      "Empirical results from a 33-config × 7-phase × 2-judge eval grounding the QRPTSPI picks.",
+    content: `See public/notes/evals.md for the full report.`,
   },
   {
     slug: "example-note",

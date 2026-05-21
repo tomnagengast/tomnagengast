@@ -7,18 +7,18 @@
     <language>en-us</language>
     <atom:link href="https://tomnagengast.com/rss.xml" rel="self" type="application/rss+xml" />
     <item>
+      <title>QRPTSPI &amp; the art of routing</title>
+      <link>https://tomnagengast.com/notes/qrptspi</link>
+      <guid>https://tomnagengast.com/notes/qrptspi</guid>
+      <pubDate>Thu, 21 May 2026 00:00:00 GMT</pubDate>
+      <description>Standalone reference for QRPTSPI model selection.</description>
+    </item>
+    <item>
       <title>OpenTelemetry &amp; the shape of signals</title>
       <link>https://tomnagengast.com/notes/otel</link>
       <guid>https://tomnagengast.com/notes/otel</guid>
       <pubDate>Wed, 20 May 2026 00:00:00 GMT</pubDate>
       <description>A practitioner&apos;s field manual for logs, traces, and metrics — what each is for, what each costs, and how OTel makes them talk.</description>
-    </item>
-    <item>
-      <title>QRPTSPI &amp; the art of routing</title>
-      <link>https://tomnagengast.com/notes/qrptspi</link>
-      <guid>https://tomnagengast.com/notes/qrptspi</guid>
-      <pubDate>Wed, 20 May 2026 00:00:00 GMT</pubDate>
-      <description>Standalone reference for QRPTSPI model selection.</description>
     </item>
   </channel>
 </rss>

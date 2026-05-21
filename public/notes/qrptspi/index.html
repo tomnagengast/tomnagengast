@@ -1181,7 +1181,7 @@
             <td class="step-mark"><span class="underline">P</span></td>
             <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
             <td class="cell"><span class="model">Opus 4.7</span> <span class="eff eff-high">high</span></td>
-            <td class="cell pref-cell"><span class="model">Opus 4.7</span> <span class="eff eff-high">high</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-high">high</span></td>
           </tr>
           <tr>
             <td class="step-mark"><span class="underline">I</span></td>
@@ -1243,7 +1243,7 @@
             <td class="step-mark"><span class="underline">P</span></td>
             <td class="cell"><span class="model">gpt-5.5</span> <span class="eff eff-xhigh">xhigh</span></td>
             <td class="cell"><span class="model">Opus 4.7</span> <span class="eff eff-xhigh">xhigh</span></td>
-            <td class="cell pref-cell"><span class="model">Opus 4.7</span> <span class="eff eff-xhigh">xhigh</span></td>
+            <td class="cell pref-cell"><span class="model">gpt-5.5</span> <span class="eff eff-xhigh">xhigh</span></td>
           </tr>
           <tr>
             <td class="step-mark"><span class="underline">I</span></td>
@@ -1349,7 +1349,7 @@
         <div class="detail-goal">Sequenced steps with validation criteria.</div>
         <ul>
           <li>Often replaced by <code style="font-family: var(--mono); font-size: 11px;">rpi:implement-outline</code> — go S → I directly</li>
-          <li>Still worth the round-trip for high-risk or auth/migration work</li>
+          <li>gpt-5.5 high is the matrix winner for plan when you do run it</li>
           <li>Must include rollback / failure criteria when present</li>
         </ul>
         <div class="detail-avoid"><span class="tag">Avoid</span>Generating a plan that just paraphrases the outline.</div>
@@ -1655,8 +1655,9 @@
         <ul>
           <li>Use <code>gpt-5.5 low</code> for research — sparse and dense</li>
           <li>Use Opus for implementation of a tight plan — Codex executes literal plans faster</li>
-          <li>Trust Sonnet 4.6 to reason about large complex codebases</li>
+          <li>Use Opus 4.6 or 4.5 in headless <code>-p</code> flows — they tend to ask "do you want me to…" instead of producing the artifact</li>
           <li>Use <code>max</code> as a default — overthinks; xhigh is the practical ceiling</li>
+          <li>Sleep on Codex <code>--service-tier=fast</code> — matched or beat <code>default</code> on every phase tested</li>
         </ul>
       </div>
       <div class="dont-col">
